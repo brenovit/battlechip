@@ -3,3 +3,13 @@
 > node server.js
 
 [SERVER] BattleChip running on http://localhost:51977
+[CONNECTION] Client connected: Ee9RIS_BsVLkMvaZAAAB
+[CONNECTION] Client connected: Rx3Jx-phkHdlV2t_AAAD
+[DISCONNECT] Client disconnected: Rx3Jx-phkHdlV2t_AAAD
+[CONNECTION] Client connected: wze7Y2gToobZesnhAAAF
+[DISCONNECT] Client disconnected: Ee9RIS_BsVLkMvaZAAAB
+[CONNECTION] Client connected: YlX_Cx1IKkard2e3AAAH
+[GAME CREATED] Game 48X3K4 by 2222222
+[PLAYER JOINED] 11111 joined game 48X3K4
+[DISCONNECT] Client disconnected: YlX_Cx1IKkard2e3AAAH
+[DISCONNECT] Client disconnected: wze7Y2gToobZesnhAAAF

@@ -20,6 +20,35 @@
 
 	onMount(() => {
 		gameStore.connect();
+		
+		// Listen for opponent attacks on our grid
+		const socket = gameStore.getSocket();
+		if (socket) {
+			socket.on('opponent-attacked', (coordinate: Coordinate, wasHit: boolean) => {
+				if (wasHit) {
+					myGrid.cells[coordinate.row][coordinate.col].status = 'hit';
+					// Check if resource is destroyed
+					const resource = myGrid.resources.find(r => 
+						r.coordinates.some(c => c.row === coordinate.row && c.col === coordinate.col)
+					);
+					if (resource) {
+						const allHit = resource.coordinates.every(coord => 
+							myGrid.cells[coord.row][coord.col].status === 'hit' ||
+							myGrid.cells[coord.row][coord.col].status === 'destroyed'
+						);
+						if (allHit) {
+							// Mark all cells as destroyed
+							resource.coordinates.forEach(coord => {
+								myGrid.cells[coord.row][coord.col].status = 'destroyed';
+							});
+						}
+					}
+				} else {
+					myGrid.cells[coordinate.row][coordinate.col].status = 'miss';
+				}
+				myGrid = myGrid;
+			});
+		}
 	});
 
 	function createGame() {
@@ -42,6 +71,22 @@
 	function handleResourcesPlaced() {
 		const socket = gameStore.getSocket();
 		if (socket && $gameStore.gameId && $gameStore.playerId) {
+			// First, send resource placements to server
+			const resourcePlacements = myGrid.resources.map(resource => {
+				const firstCoord = resource.coordinates[0];
+				const isHorizontal = resource.coordinates.length > 1 && 
+					resource.coordinates[0].row === resource.coordinates[1].row;
+				
+				return {
+					type: resource.type,
+					start: firstCoord,
+					orientation: isHorizontal ? 'horizontal' : 'vertical'
+				};
+			});
+
+			socket.emit('place-resources', $gameStore.gameId, $gameStore.playerId, resourcePlacements);
+			
+			// Then mark player as ready
 			socket.emit('player-ready', $gameStore.gameId, $gameStore.playerId);
 			message = '[RESOURCES DEPLOYED] - [WAITING FOR OPPONENT...]';
 		}
