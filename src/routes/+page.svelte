@@ -91,14 +91,23 @@
 				};
 			});
 
+			console.log('[CLIENT] Emitting place-resources event', {
+				gameId: $gameStore.gameId,
+				playerId: $gameStore.playerId,
+				resourceCount: resourcePlacements.length
+			});
 			socket.emit('place-resources', $gameStore.gameId, $gameStore.playerId, resourcePlacements);
 			message = '[RESOURCES DEPLOYED] - [CONFIRM WHEN READY]';
+			
+			// Trigger Svelte reactivity by reassigning the grid
+			myGrid = myGrid;
 		}
 	}
 
 	function confirmReady() {
 		const socket = gameStore.getSocket();
 		if (socket && $gameStore.gameId && $gameStore.playerId) {
+			console.log('[CLIENT] Emitting player-ready event', $gameStore.gameId, $gameStore.playerId);
 			socket.emit('player-ready', $gameStore.gameId, $gameStore.playerId);
 			isPlayerReady = true;
 			if (isOpponentReady) {
@@ -106,6 +115,12 @@
 			} else {
 				message = '[YOU ARE READY] - [WAITING FOR OPPONENT...]';
 			}
+		} else {
+			console.error('[CLIENT] Cannot emit player-ready - missing socket, gameId, or playerId', {
+				hasSocket: !!socket,
+				gameId: $gameStore.gameId,
+				playerId: $gameStore.playerId
+			});
 		}
 	}
 
