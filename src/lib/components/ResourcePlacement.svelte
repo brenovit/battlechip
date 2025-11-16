@@ -85,9 +85,12 @@
 		{/if}
 
 		{#if allPlaced()}
-			<button class="ready-btn" on:click={onComplete}>
-				[SYSTEMS ONLINE] - [READY]
-			</button>
+			<div class="deployment-complete">
+				<button class="deploy-btn" on:click={onComplete}>
+					[DEPLOY RESOURCES]
+				</button>
+				<p class="deploy-hint">All resources placed</p>
+			</div>
 		{/if}
 	</div>
 
@@ -217,7 +220,14 @@
 		box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
 	}
 
-	.ready-btn {
+	.deployment-complete {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-top: 1rem;
+	}
+
+	.deploy-btn {
 		width: 100%;
 		background: #002200;
 		border: 2px solid #0f0;
@@ -230,9 +240,16 @@
 		animation: pulse 1.5s infinite;
 	}
 
-	.ready-btn:hover {
+	.deploy-btn:hover {
 		background: #004400;
 		box-shadow: 0 0 20px rgba(0, 255, 0, 1);
+	}
+
+	.deploy-hint {
+		color: #0a0;
+		margin: 0;
+		text-align: center;
+		font-size: 0.9rem;
 	}
 
 	@keyframes pulse {

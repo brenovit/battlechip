@@ -12,6 +12,8 @@
 	let opponentGrid: GridType = createEmptyGrid();
 	let message = '';
 	let score = 0;
+	let isPlayerReady = false;
+	let isOpponentReady = false;
 
 	$: phase = $gameStore.phase;
 	$: isMyTurn = $gameStore.isMyTurn;
@@ -48,6 +50,11 @@
 				}
 				myGrid = myGrid;
 			});
+
+			socket.on('opponent-ready', () => {
+				isOpponentReady = true;
+				message = '[OPPONENT READY] - [WAITING FOR BATTLE TO START...]';
+			});
 		}
 	});
 
@@ -71,7 +78,7 @@
 	function handleResourcesPlaced() {
 		const socket = gameStore.getSocket();
 		if (socket && $gameStore.gameId && $gameStore.playerId) {
-			// First, send resource placements to server
+			// Send resource placements to server
 			const resourcePlacements = myGrid.resources.map(resource => {
 				const firstCoord = resource.coordinates[0];
 				const isHorizontal = resource.coordinates.length > 1 && 
@@ -85,10 +92,20 @@
 			});
 
 			socket.emit('place-resources', $gameStore.gameId, $gameStore.playerId, resourcePlacements);
-			
-			// Then mark player as ready
+			message = '[RESOURCES DEPLOYED] - [CONFIRM WHEN READY]';
+		}
+	}
+
+	function confirmReady() {
+		const socket = gameStore.getSocket();
+		if (socket && $gameStore.gameId && $gameStore.playerId) {
 			socket.emit('player-ready', $gameStore.gameId, $gameStore.playerId);
-			message = '[RESOURCES DEPLOYED] - [WAITING FOR OPPONENT...]';
+			isPlayerReady = true;
+			if (isOpponentReady) {
+				message = '[BOTH PLAYERS READY] - [INITIATING BATTLE...]';
+			} else {
+				message = '[YOU ARE READY] - [WAITING FOR OPPONENT...]';
+			}
 		}
 	}
 
@@ -190,10 +207,26 @@
 				{#if opponentName}
 					<p class="opponent-info">[OPPONENT DETECTED: {opponentName}]</p>
 				{/if}
+				<div class="ready-status">
+					<div class="status-indicator" class:ready={isPlayerReady}>
+						[YOU: {isPlayerReady ? '✓ READY' : '⧗ DEPLOYING'}]
+					</div>
+					<div class="status-indicator" class:ready={isOpponentReady}>
+						[OPPONENT: {isOpponentReady ? '✓ READY' : '⧗ DEPLOYING'}]
+					</div>
+				</div>
 			</div>
 			<ResourcePlacement grid={myGrid} onComplete={handleResourcesPlaced} />
 			{#if message}
 				<div class="message">{message}</div>
+			{/if}
+			{#if myGrid.resources.length === 6 && !isPlayerReady}
+				<div class="ready-confirmation">
+					<button class="confirm-ready-btn" on:click={confirmReady}>
+						[CONFIRM READY] - [START BATTLE]
+					</button>
+					<p class="ready-hint">Click to confirm you are ready to begin the battle</p>
+				</div>
 			{/if}
 		</div>
 	{:else if phase === 'battle'}
@@ -415,7 +448,77 @@
 
 	.opponent-info {
 		color: #0a0;
+		margin: 0 0 1rem 0;
+	}
+
+	.ready-status {
+		display: flex;
+		justify-content: center;
+		gap: 2rem;
+		margin-top: 1rem;
+	}
+
+	.status-indicator {
+		padding: 0.75rem 1.5rem;
+		border: 2px solid #555;
+		background: #001100;
+		color: #888;
+		font-size: 1rem;
+		transition: all 0.3s ease;
+	}
+
+	.status-indicator.ready {
+		border-color: #0f0;
+		color: #0f0;
+		box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+		animation: pulse 2s infinite;
+	}
+
+	.ready-confirmation {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+		margin-top: 2rem;
+		padding: 2rem;
+		background: #000;
+		border: 3px solid #0f0;
+		box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+	}
+
+	.confirm-ready-btn {
+		background: #002200;
+		border: 3px solid #0f0;
+		color: #0f0;
+		padding: 1.5rem 3rem;
+		font-family: inherit;
+		font-size: 1.3rem;
+		font-weight: bold;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		animation: pulse-bright 1.5s infinite;
+	}
+
+	.confirm-ready-btn:hover {
+		background: #004400;
+		box-shadow: 0 0 30px rgba(0, 255, 0, 1);
+		transform: scale(1.05);
+	}
+
+	.ready-hint {
+		color: #0a0;
 		margin: 0;
+		font-size: 0.9rem;
+		text-align: center;
+	}
+
+	@keyframes pulse-bright {
+		0%, 100% {
+			box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+		}
+		50% {
+			box-shadow: 0 0 30px rgba(0, 255, 0, 1);
+		}
 	}
 
 	.battle-phase {
