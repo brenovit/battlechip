@@ -387,7 +387,7 @@ io.on('connection', (socket) => {
 
 app.use(handler);
 
-const PORT = 51977;
+const PORT = process.env.PORT || 54440;
 server.listen(PORT, '0.0.0.0', () => {
 	console.log(`[SERVER] BattleChip running on http://localhost:${PORT}`);
 });
