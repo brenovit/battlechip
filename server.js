@@ -297,25 +297,38 @@ io.on('connection', (socket) => {
 
 	socket.on('player-ready', (gameId, playerId) => {
 		const gameRoom = gameRooms.get(gameId);
-		if (!gameRoom) return;
+		if (!gameRoom) {
+			console.log(`[ERROR] Game room not found: ${gameId}`);
+			return;
+		}
 
 		const player = gameRoom.gameState.players.find(p => p?.id === playerId);
-		if (!player) return;
+		if (!player) {
+			console.log(`[ERROR] Player not found: ${playerId}`);
+			return;
+		}
 
 		if (!allResourcesPlaced(player.grid)) {
 			socket.emit('error', 'All resources must be placed');
+			console.log(`[ERROR] Player ${player.name} tried to ready without all resources placed`);
 			return;
 		}
 
 		player.isReady = true;
+		console.log(`[PLAYER READY] ${player.name} is ready`);
 
 		const otherPlayerIndex = gameRoom.gameState.players[0].id === playerId ? 1 : 0;
-		const otherPlayerSocket = gameRoom.playerSockets.get(gameRoom.gameState.players[otherPlayerIndex].id);
-		if (otherPlayerSocket) {
-			io.to(otherPlayerSocket).emit('opponent-ready');
+		const otherPlayer = gameRoom.gameState.players[otherPlayerIndex];
+		
+		if (otherPlayer) {
+			const otherPlayerSocket = gameRoom.playerSockets.get(otherPlayer.id);
+			if (otherPlayerSocket) {
+				io.to(otherPlayerSocket).emit('opponent-ready');
+				console.log(`[OPPONENT READY] Notified ${otherPlayer.name} that opponent is ready`);
+			}
 		}
 
-		if (gameRoom.gameState.players[0].isReady && gameRoom.gameState.players[1].isReady) {
+		if (gameRoom.gameState.players[0]?.isReady && gameRoom.gameState.players[1]?.isReady) {
 			gameRoom.gameState.phase = 'battle';
 			io.to(gameId).emit('battle-started');
 
@@ -325,6 +338,8 @@ io.on('connection', (socket) => {
 			}
 
 			console.log(`[BATTLE STARTED] Game ${gameId}`);
+		} else {
+			console.log(`[WAITING] Game ${gameId} - Player 0 ready: ${gameRoom.gameState.players[0]?.isReady}, Player 1 ready: ${gameRoom.gameState.players[1]?.isReady}`);
 		}
 	});
 
