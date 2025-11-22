@@ -5,18 +5,18 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	server: {
 		host: '0.0.0.0',
-		port: 54440,
+		port: 50955,
 		strictPort: false,
 		fs: {
 			allow: ['..']
 		},
 		hmr: {
-			clientPort: 54440
+			clientPort: 50955
 		}
 	},
 	preview: {
 		host: '0.0.0.0',
-		port: 54440,
+		port: 50955,
 		strictPort: false
 	}
 });
