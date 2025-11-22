@@ -12,6 +12,59 @@
 
 	const resourceList: ResourceType[] = ['database', 'backup', 'server', 'firewall', 'iot-cluster', 'router'];
 
+	function randomDeployment() {
+		// Clear existing placements
+		placedResources.clear();
+		grid.resources = [];
+		grid.cells.forEach(row => {
+			row.forEach(cell => {
+				cell.resourceType = null;
+				cell.status = 'empty';
+			});
+		});
+
+		// Randomly place each resource
+		for (const resourceType of resourceList) {
+			const resource = RESOURCES[resourceType];
+			let placed = false;
+			let attempts = 0;
+			const maxAttempts = 100;
+
+			while (!placed && attempts < maxAttempts) {
+				const randomOrientation: Orientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
+				const randomRow = Math.floor(Math.random() * GRID_SIZE);
+				const randomCol = Math.floor(Math.random() * GRID_SIZE);
+				const coord: Coordinate = { row: randomRow, col: randomCol };
+
+				if (canPlaceResource(grid, coord, resource.size, randomOrientation)) {
+					placeResource(grid, resourceType, coord, randomOrientation);
+					placedResources.add(resourceType);
+					placed = true;
+				}
+
+				attempts++;
+			}
+
+			if (!placed) {
+				// If we couldn't place this resource, clear everything and start over
+				placedResources.clear();
+				grid.resources = [];
+				grid.cells.forEach(row => {
+					row.forEach(cell => {
+						cell.resourceType = null;
+						cell.status = 'empty';
+					});
+				});
+				randomDeployment();
+				return;
+			}
+		}
+
+		// Trigger Svelte reactivity
+		placedResources = placedResources;
+		grid = grid;
+	}
+
 	function handleCellClick(coord: Coordinate) {
 		if (!selectedResource) return;
 
@@ -81,6 +134,15 @@
 				<button class="control-btn" on:click={() => selectedResource = null}>
 					[CANCEL]
 				</button>
+			</div>
+		{/if}
+
+		{#if placedResources.size === 0}
+			<div class="random-deploy">
+				<button class="random-btn" on:click={randomDeployment}>
+					[RANDOM DEPLOY]
+				</button>
+				<p class="random-hint">Automatically place all resources</p>
 			</div>
 		{/if}
 
@@ -218,6 +280,41 @@
 	.control-btn:hover {
 		background: #003300;
 		box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+	}
+
+	.random-deploy {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-top: 1rem;
+		padding-top: 1rem;
+		border-top: 1px solid #0a0;
+	}
+
+	.random-btn {
+		width: 100%;
+		background: #001100;
+		border: 2px solid #0a0;
+		color: #0a0;
+		padding: 0.75rem;
+		cursor: pointer;
+		font-family: inherit;
+		font-size: 1rem;
+		transition: all 0.2s ease;
+	}
+
+	.random-btn:hover {
+		background: #002200;
+		border-color: #0f0;
+		box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+		color: #0f0;
+	}
+
+	.random-hint {
+		color: #0a0;
+		margin: 0;
+		text-align: center;
+		font-size: 0.85rem;
 	}
 
 	.deployment-complete {
