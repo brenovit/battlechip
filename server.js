@@ -283,16 +283,26 @@ io.on('connection', (socket) => {
 
 	socket.on('place-resources', (gameId, playerId, resourcePlacements) => {
 		const gameRoom = gameRooms.get(gameId);
-		if (!gameRoom) return;
-
-		const player = gameRoom.gameState.players.find(p => p?.id === playerId);
-		if (!player) return;
-
-		for (const placement of resourcePlacements) {
-			placeResource(player.grid, placement.type, placement.start, placement.orientation);
+		if (!gameRoom) {
+			console.log(`[ERROR] Game room not found for place-resources: ${gameId}`);
+			return;
 		}
 
-		console.log(`[RESOURCES PLACED] Player ${player.name} placed resources`);
+		const player = gameRoom.gameState.players.find(p => p?.id === playerId);
+		if (!player) {
+			console.log(`[ERROR] Player not found for place-resources: ${playerId}`);
+			return;
+		}
+
+		console.log(`[RESOURCES PLACING] Player ${player.name} placing ${resourcePlacements.length} resources`);
+		for (const placement of resourcePlacements) {
+			const success = placeResource(player.grid, placement.type, placement.start, placement.orientation);
+			if (!success) {
+				console.log(`[ERROR] Failed to place resource ${placement.type} for ${player.name}`);
+			}
+		}
+
+		console.log(`[RESOURCES PLACED] Player ${player.name} placed resources. Total: ${player.grid.resources.length}/${Object.keys(RESOURCES).length}`);
 	});
 
 	socket.on('player-ready', (gameId, playerId) => {
@@ -308,14 +318,16 @@ io.on('connection', (socket) => {
 			return;
 		}
 
+		const resourceCount = player.grid.resources.length;
+		const requiredCount = Object.keys(RESOURCES).length;
 		if (!allResourcesPlaced(player.grid)) {
 			socket.emit('error', 'All resources must be placed');
-			console.log(`[ERROR] Player ${player.name} tried to ready without all resources placed`);
+			console.log(`[ERROR] Player ${player.name} tried to ready without all resources placed (${resourceCount}/${requiredCount})`);
 			return;
 		}
 
 		player.isReady = true;
-		console.log(`[PLAYER READY] ${player.name} is ready`);
+		console.log(`[PLAYER READY] ${player.name} is ready (${resourceCount}/${requiredCount} resources)`);
 
 		const otherPlayerIndex = gameRoom.gameState.players[0].id === playerId ? 1 : 0;
 		const otherPlayer = gameRoom.gameState.players[otherPlayerIndex];
@@ -402,7 +414,7 @@ io.on('connection', (socket) => {
 
 app.use(handler);
 
-const PORT = process.env.PORT || 54440;
+const PORT = process.env.PORT || 50955;
 server.listen(PORT, '0.0.0.0', () => {
 	console.log(`[SERVER] BattleChip running on http://localhost:${PORT}`);
 });
