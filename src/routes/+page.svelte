@@ -15,12 +15,22 @@
 	let isPlayerReady = false;
 	let isOpponentReady = false;
 
+	// Random name generator data
+	const adjectives = ['Cyber', 'Shadow', 'Ghost', 'Quantum', 'Digital', 'Binary', 'Neon', 'Apex', 'Void', 'Echo', 'Prism', 'Nexus', 'Dark', 'Storm', 'Iron', 'Steel', 'Chrome', 'Hyper', 'Ultra', 'Mega'];
+	const nouns = ['Hacker', 'Operator', 'Agent', 'Runner', 'Phantom', 'Warrior', 'Knight', 'Sentinel', 'Reaper', 'Hunter', 'Ninja', 'Samurai', 'Sniper', 'Blade', 'Viper', 'Wolf', 'Raven', 'Phoenix', 'Dragon', 'Tiger'];
+
 	$: phase = $gameStore.phase;
 	$: isMyTurn = $gameStore.isMyTurn;
 	$: opponentName = $gameStore.opponentName;
 	$: currentGameId = $gameStore.gameId;
+	
+	// Debug logging for phase changes
+	$: if (phase) {
+		console.log('[PAGE] Phase changed to:', phase);
+	}
 
 	onMount(() => {
+		console.log('[PAGE] onMount() called - CLIENT-SIDE JAVASCRIPT IS RUNNING');
 		gameStore.connect();
 		
 		// Listen for opponent attacks on our grid
@@ -58,6 +68,28 @@
 		}
 	});
 
+	function generateRandomName() {
+		const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+		const noun = nouns[Math.floor(Math.random() * nouns.length)];
+		const num = Math.floor(Math.random() * 99) + 1;
+		playerName = `${adj}${noun}${num}`;
+	}
+
+	function copyNetworkId() {
+		if (currentGameId) {
+			navigator.clipboard.writeText(currentGameId).catch(() => {
+				// Fallback for browsers that don't support clipboard API
+				const textArea = document.createElement('textarea');
+				textArea.value = currentGameId;
+				document.body.appendChild(textArea);
+				textArea.select();
+				document.execCommand('copy');
+				document.body.removeChild(textArea);
+				alert('Network ID copied to clipboard!');
+			});
+		}
+	}
+
 	function createGame() {
 		if (!playerName.trim()) {
 			alert('Please enter your name');
@@ -68,11 +100,14 @@
 	}
 
 	function joinGame() {
+		console.log('[PAGE] joinGame() called - playerName:', playerName, 'gameId:', gameId);
 		if (!playerName.trim() || !gameId.trim()) {
 			alert('Please enter your name and game ID');
 			return;
 		}
+		console.log('[PAGE] Calling gameStore.joinGame()');
 		gameStore.joinGame(gameId.toUpperCase(), playerName);
+		console.log('[PAGE] gameStore.joinGame() returned');
 	}
 
 	function handleResourcesPlaced() {
@@ -106,14 +141,23 @@
 
 	function confirmReady() {
 		const socket = gameStore.getSocket();
+		console.log('[CLIENT] confirmReady() called');
+		console.log('[CLIENT] Current phase:', phase);
+		console.log('[CLIENT] isPlayerReady:', isPlayerReady, 'isOpponentReady:', isOpponentReady);
+		
 		if (socket && $gameStore.gameId && $gameStore.playerId) {
-			console.log('[CLIENT] Emitting player-ready event', $gameStore.gameId, $gameStore.playerId);
+			console.log('[CLIENT] Emitting player-ready event', {
+				gameId: $gameStore.gameId,
+				playerId: $gameStore.playerId
+			});
 			socket.emit('player-ready', $gameStore.gameId, $gameStore.playerId);
 			isPlayerReady = true;
 			if (isOpponentReady) {
 				message = '[BOTH PLAYERS READY] - [INITIATING BATTLE...]';
+				console.log('[CLIENT] Both players ready, expecting battle-started event');
 			} else {
 				message = '[YOU ARE READY] - [WAITING FOR OPPONENT...]';
+				console.log('[CLIENT] Waiting for opponent to ready');
 			}
 		} else {
 			console.error('[CLIENT] Cannot emit player-ready - missing socket, gameId, or playerId', {
@@ -166,13 +210,19 @@
 				<div class="terminal-body">
 					<div class="input-group">
 						<label for="name">&gt; USERNAME:</label>
-						<input
-							id="name"
-							type="text"
-							bind:value={playerName}
-							placeholder="Enter your handle..."
-							class="terminal-input"
-						/>
+						<div style="display: flex; gap: 0.5rem; width: 100%;">
+							<input
+								id="name"
+								type="text"
+								bind:value={playerName}
+								placeholder="Enter your handle..."
+								class="terminal-input"
+								style="flex: 1;"
+							/>
+							<button class="terminal-btn-small" on:click={generateRandomName} title="Generate random name">
+								[🎲]
+							</button>
+						</div>
 					</div>
 
 					<div class="button-group">
@@ -204,7 +254,12 @@
 					{#if currentGameId}
 						<div class="game-code">
 							<p>[NETWORK ID]</p>
-							<p class="code">{currentGameId}</p>
+							<div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
+								<p class="code">{currentGameId}</p>
+								<button class="terminal-btn-small" on:click={copyNetworkId} title="Copy to clipboard">
+									[📋]
+								</button>
+							</div>
 							<p class="hint">Share this code with your opponent</p>
 						</div>
 					{/if}
@@ -403,6 +458,23 @@
 	}
 
 	.terminal-btn:hover {
+		background: #003300;
+		box-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
+	}
+
+	.terminal-btn-small {
+		background: #001100;
+		border: 2px solid #0f0;
+		color: #0f0;
+		padding: 0.5rem 0.75rem;
+		font-family: inherit;
+		font-size: 1rem;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		white-space: nowrap;
+	}
+
+	.terminal-btn-small:hover {
 		background: #003300;
 		box-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
 	}

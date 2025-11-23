@@ -12,13 +12,16 @@
 
 	const resourceList: ResourceType[] = ['database', 'backup', 'server', 'firewall', 'iot-cluster', 'router'];
 
+	// Reactive declaration to track when all resources are placed
+	$: allResourcesPlaced = placedResources.size === resourceList.length;
+
 	function randomDeployment() {
 		// Clear existing placements
 		placedResources.clear();
 		grid.resources = [];
 		grid.cells.forEach(row => {
 			row.forEach(cell => {
-				cell.resourceType = null;
+				cell.resourceType = undefined;
 				cell.status = 'empty';
 			});
 		});
@@ -51,7 +54,7 @@
 				grid.resources = [];
 				grid.cells.forEach(row => {
 					row.forEach(cell => {
-						cell.resourceType = null;
+						cell.resourceType = undefined;
 						cell.status = 'empty';
 					});
 				});
@@ -83,10 +86,6 @@
 
 	function isResourcePlaced(type: ResourceType): boolean {
 		return placedResources.has(type);
-	}
-
-	function allPlaced(): boolean {
-		return placedResources.size === resourceList.length;
 	}
 
 	function getCellPreview(coord: Coordinate): boolean {
@@ -146,12 +145,12 @@
 			</div>
 		{/if}
 
-		{#if allPlaced()}
+		{#if allResourcesPlaced}
 			<div class="deployment-complete">
 				<button class="deploy-btn" on:click={onComplete}>
-					[DEPLOY RESOURCES]
+					[CONFIRM DEPLOYMENT]
 				</button>
-				<p class="deploy-hint">All resources placed</p>
+				<p class="deploy-hint">All resources deployed</p>
 			</div>
 		{/if}
 	</div>

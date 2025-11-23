@@ -231,6 +231,7 @@ io.on('connection', (socket) => {
 		socket.join(gameId);
 
 		console.log(`[GAME CREATED] Game ${gameId} by ${playerName}`);
+		console.log(`[SERVER] Sending create-game callback with gameId=${gameId}, playerId=${playerId}`);
 		callback(gameId, playerId);
 	});
 
@@ -268,16 +269,21 @@ io.on('connection', (socket) => {
 
 		gameRoom.gameState.phase = 'placement';
 
+		console.log(`[SERVER] Emitting game-update to room ${gameId} with phase: placement`);
 		io.to(gameId).emit('game-update', {
 			phase: 'placement'
 		});
 
 		const player1Socket = gameRoom.playerSockets.get(gameRoom.gameState.players[0].id);
 		if (player1Socket) {
+			console.log(`[SERVER] Emitting opponent-joined to player 1 (socket: ${player1Socket})`);
 			io.to(player1Socket).emit('opponent-joined', playerName);
+		} else {
+			console.log(`[ERROR] Could not find player 1 socket`);
 		}
 
 		console.log(`[PLAYER JOINED] ${playerName} joined game ${gameId}`);
+		console.log(`[SERVER] Sending join-game callback with success=true, playerId=${playerId}`);
 		callback(true, playerId);
 	});
 
