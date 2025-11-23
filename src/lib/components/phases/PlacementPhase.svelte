@@ -43,7 +43,6 @@
 				resourceCount: resourcePlacements.length
 			});
 			socket.emit('place-resources', $gameStore.gameId, $gameStore.playerId, resourcePlacements);
-			messageStore.show('[RESOURCES DEPLOYED] - [CONFIRM WHEN READY]', 'success');
 			myGrid = myGrid;
 		}
 	}
@@ -54,6 +53,9 @@
 		console.log('[PLACEMENT] isPlayerReady:', isPlayerReady, 'isOpponentReady:', isOpponentReady);
 		
 		if (socket && $gameStore.gameId && $gameStore.playerId) {
+			// First, send the resource placements to the server
+			handleResourcesPlaced();
+			
 			console.log('[PLACEMENT] Emitting player-ready event', {
 				gameId: $gameStore.gameId,
 				playerId: $gameStore.playerId
@@ -92,7 +94,7 @@
 			</div>
 		</div>
 	</div>
-	<ResourcePlacement grid={myGrid} onComplete={handleResourcesPlaced} />
+	<ResourcePlacement grid={myGrid} />
 	{#if myGrid.resources.length === 6 && !isPlayerReady}
 		<div class="ready-confirmation">
 			<button class="confirm-ready-btn" on:click={confirmReady}>

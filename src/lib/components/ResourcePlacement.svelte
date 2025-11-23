@@ -4,7 +4,6 @@
 	import { canPlaceResource, placeResource } from '$lib/utils/grid';
 
 	export let grid: Grid;
-	export let onComplete: () => void;
 
 	let selectedResource: ResourceType | null = null;
 	let orientation: Orientation = 'horizontal';
@@ -16,8 +15,12 @@
 	// Reactive declaration to track when all resources are placed
 	$: allResourcesPlaced = placedResources.size === resourceList.length;
 	
-	// Reset animation whenever selectedResource changes
+	// Reset animation whenever selectedResource or orientation changes
 	$: if (selectedResource !== null) {
+		animationKey++;
+	}
+	
+	$: if (orientation) {
 		animationKey++;
 	}
 
@@ -148,15 +151,6 @@
 					[RANDOM DEPLOY]
 				</button>
 				<p class="random-hint">Automatically place all resources</p>
-			</div>
-		{/if}
-
-		{#if allResourcesPlaced}
-			<div class="deployment-complete">
-				<button class="deploy-btn" on:click={onComplete}>
-					[CONFIRM DEPLOYMENT]
-				</button>
-				<p class="deploy-hint">All resources deployed</p>
 			</div>
 		{/if}
 	</div>
@@ -322,47 +316,6 @@
 		margin: 0;
 		text-align: center;
 		font-size: 0.85rem;
-	}
-
-	.deployment-complete {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		margin-top: 1rem;
-	}
-
-	.deploy-btn {
-		width: 100%;
-		background: #002200;
-		border: 2px solid #0f0;
-		color: #0f0;
-		padding: 1rem;
-		cursor: pointer;
-		font-family: inherit;
-		font-size: 1.1rem;
-		font-weight: bold;
-		animation: pulse 1.5s infinite;
-	}
-
-	.deploy-btn:hover {
-		background: #004400;
-		box-shadow: 0 0 20px rgba(0, 255, 0, 1);
-	}
-
-	.deploy-hint {
-		color: #0a0;
-		margin: 0;
-		text-align: center;
-		font-size: 0.9rem;
-	}
-
-	@keyframes pulse {
-		0%, 100% {
-			box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-		}
-		50% {
-			box-shadow: 0 0 20px rgba(0, 255, 0, 1);
-		}
 	}
 
 	.grid-container {
