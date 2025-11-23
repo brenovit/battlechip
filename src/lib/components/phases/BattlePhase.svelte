@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { onMount, onDestroy } from 'svelte';
 	import { gameStore } from '$lib/stores/game';
+	import { messageStore } from '$lib/stores/message';
 	import Grid from '$lib/components/Grid.svelte';
 	import type { Grid as GridType, Coordinate } from '$lib/types/game';
 
@@ -7,19 +9,55 @@
 	export let opponentGrid: GridType;
 	export let score: number;
 
-	let message = '';
-
 	$: opponentName = $gameStore.opponentName;
 	$: isMyTurn = $gameStore.isMyTurn;
 
+	onMount(() => {
+		const socket = gameStore.getSocket();
+		if (socket) {
+			socket.on('opponent-attacked', handleOpponentAttack);
+		}
+	});
+
+	onDestroy(() => {
+		const socket = gameStore.getSocket();
+		if (socket) {
+			socket.off('opponent-attacked', handleOpponentAttack);
+		}
+	});
+
+	function handleOpponentAttack(coordinate: Coordinate, wasHit: boolean) {
+		if (wasHit) {
+			myGrid.cells[coordinate.row][coordinate.col].status = 'hit';
+			const resource = myGrid.resources.find(r => 
+				r.coordinates.some(c => c.row === coordinate.row && c.col === coordinate.col)
+			);
+			if (resource) {
+				const allHit = resource.coordinates.every(coord => 
+					myGrid.cells[coord.row][coord.col].status === 'hit' ||
+					myGrid.cells[coord.row][coord.col].status === 'destroyed'
+				);
+				if (allHit) {
+					resource.coordinates.forEach(coord => {
+						myGrid.cells[coord.row][coord.col].status = 'destroyed';
+					});
+				}
+			}
+		} else {
+			myGrid.cells[coordinate.row][coordinate.col].status = 'miss';
+		}
+		myGrid = myGrid;
+	}
+
 	function handleAttack(coord: Coordinate) {
 		if (!isMyTurn) {
-			message = '[ERROR] - Not your turn';
+			messageStore.show('[ERROR] - Not your turn', 'error');
 			return;
 		}
 
 		gameStore.attack(coord, (result) => {
-			message = result.message;
+			const msgType = result.status === 'miss' ? 'warning' : result.status === 'destroyed' ? 'success' : 'info';
+			messageStore.show(result.message, msgType);
 			score += result.points;
 
 			if (result.status !== 'miss') {
@@ -61,10 +99,6 @@
 			<Grid cells={opponentGrid.cells} onCellClick={handleAttack} />
 		</div>
 	</div>
-
-	{#if message}
-		<div class="battle-message">{message}</div>
-	{/if}
 </div>
 
 <style>
@@ -144,16 +178,5 @@
 		text-align: center;
 		margin-bottom: 1rem;
 		font-size: 1.3rem;
-	}
-
-	.battle-message {
-		margin-top: 2rem;
-		padding: 1rem;
-		background: #001100;
-		border: 2px solid #0f0;
-		color: #0f0;
-		text-align: center;
-		font-size: 1.2rem;
-		box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
 	}
 </style>

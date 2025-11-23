@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { gameStore } from '$lib/stores/game';
+	import { messageStore } from '$lib/stores/message';
 
 	let playerName = '';
 	let gameId = '';
-	let message = '';
 
 	$: currentGameId = $gameStore.gameId;
 
-	// Random name generator data
 	const adjectives = ['Cyber', 'Shadow', 'Ghost', 'Quantum', 'Digital', 'Binary', 'Neon', 'Apex', 'Void', 'Echo', 'Prism', 'Nexus', 'Dark', 'Storm', 'Iron', 'Steel', 'Chrome', 'Hyper', 'Ultra', 'Mega'];
 	const nouns = ['Hacker', 'Operator', 'Agent', 'Runner', 'Phantom', 'Warrior', 'Knight', 'Sentinel', 'Reaper', 'Hunter', 'Ninja', 'Samurai', 'Sniper', 'Blade', 'Viper', 'Wolf', 'Raven', 'Phoenix', 'Dragon', 'Tiger'];
 
@@ -27,24 +26,23 @@
 				textArea.select();
 				document.execCommand('copy');
 				document.body.removeChild(textArea);
-				alert('Network ID copied to clipboard!');
 			});
 		}
 	}
 
 	function createGame() {
 		if (!playerName.trim()) {
-			alert('Please enter your name');
+			messageStore.show('[ERROR] - Please enter your name', 'error');
 			return;
 		}
 		gameStore.createGame(playerName);
-		message = '[INITIALIZING NETWORK...]';
+		messageStore.show('[INITIALIZING NETWORK...]', 'info');
 	}
 
 	function joinGame() {
 		console.log('[LOBBY] joinGame() called - playerName:', playerName, 'gameId:', gameId);
 		if (!playerName.trim() || !gameId.trim()) {
-			alert('Please enter your name and game ID');
+			messageStore.show('[ERROR] - Please enter your name and game ID', 'error');
 			return;
 		}
 		console.log('[LOBBY] Calling gameStore.joinGame()');
@@ -111,10 +109,6 @@
 					</div>
 					<p class="hint">Share this code with your opponent</p>
 				</div>
-			{/if}
-
-			{#if message}
-				<div class="message">{message}</div>
 			{/if}
 		</div>
 	</div>
@@ -240,14 +234,5 @@
 	.hint {
 		font-size: 0.8rem;
 		color: #0a0;
-	}
-
-	.message {
-		margin-top: 1rem;
-		padding: 1rem;
-		background: #001100;
-		border: 2px solid #0f0;
-		color: #0f0;
-		text-align: center;
 	}
 </style>

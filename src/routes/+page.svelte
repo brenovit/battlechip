@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { gameStore } from '$lib/stores/game';
+	import Message from '$lib/components/Message.svelte';
 	import Lobby from '$lib/components/phases/Lobby.svelte';
 	import PlacementPhase from '$lib/components/phases/PlacementPhase.svelte';
 	import BattlePhase from '$lib/components/phases/BattlePhase.svelte';
 	import GameOver from '$lib/components/phases/GameOver.svelte';
 	import { createEmptyGrid } from '$lib/utils/grid';
-	import type { Coordinate, Grid as GridType } from '$lib/types/game';
+	import type { Grid as GridType } from '$lib/types/game';
 
 	let myGrid: GridType = createEmptyGrid();
 	let opponentGrid: GridType = createEmptyGrid();
@@ -21,32 +22,6 @@
 	onMount(() => {
 		console.log('[PAGE] onMount() called');
 		gameStore.connect();
-		
-		const socket = gameStore.getSocket();
-		if (socket) {
-			socket.on('opponent-attacked', (coordinate: Coordinate, wasHit: boolean) => {
-				if (wasHit) {
-					myGrid.cells[coordinate.row][coordinate.col].status = 'hit';
-					const resource = myGrid.resources.find(r => 
-						r.coordinates.some(c => c.row === coordinate.row && c.col === coordinate.col)
-					);
-					if (resource) {
-						const allHit = resource.coordinates.every(coord => 
-							myGrid.cells[coord.row][coord.col].status === 'hit' ||
-							myGrid.cells[coord.row][coord.col].status === 'destroyed'
-						);
-						if (allHit) {
-							resource.coordinates.forEach(coord => {
-								myGrid.cells[coord.row][coord.col].status = 'destroyed';
-							});
-						}
-					}
-				} else {
-					myGrid.cells[coordinate.row][coordinate.col].status = 'miss';
-				}
-				myGrid = myGrid;
-			});
-		}
 	});
 </script>
 
@@ -72,6 +47,8 @@
 		<GameOver {score} onRestart={() => window.location.reload()} />
 	{/if}
 </div>
+
+<Message />
 
 <style>
 	:global(body) {

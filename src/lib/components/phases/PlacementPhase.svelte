@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { gameStore } from '$lib/stores/game';
+	import { messageStore } from '$lib/stores/message';
 	import ResourcePlacement from '$lib/components/ResourcePlacement.svelte';
-	import { createEmptyGrid } from '$lib/utils/grid';
 	import type { Grid } from '$lib/types/game';
 
 	export let myGrid: Grid;
 
-	let message = '';
 	let isPlayerReady = false;
 	let isOpponentReady = false;
 
@@ -18,7 +17,7 @@
 		if (socket) {
 			socket.on('opponent-ready', () => {
 				isOpponentReady = true;
-				message = '[OPPONENT READY] - [WAITING FOR BATTLE TO START...]';
+				messageStore.show('[OPPONENT READY] - [WAITING FOR BATTLE TO START...]', 'info');
 			});
 		}
 	});
@@ -44,7 +43,7 @@
 				resourceCount: resourcePlacements.length
 			});
 			socket.emit('place-resources', $gameStore.gameId, $gameStore.playerId, resourcePlacements);
-			message = '[RESOURCES DEPLOYED] - [CONFIRM WHEN READY]';
+			messageStore.show('[RESOURCES DEPLOYED] - [CONFIRM WHEN READY]', 'success');
 			myGrid = myGrid;
 		}
 	}
@@ -62,10 +61,10 @@
 			socket.emit('player-ready', $gameStore.gameId, $gameStore.playerId);
 			isPlayerReady = true;
 			if (isOpponentReady) {
-				message = '[BOTH PLAYERS READY] - [INITIATING BATTLE...]';
+				messageStore.show('[BOTH PLAYERS READY] - [INITIATING BATTLE...]', 'success');
 				console.log('[PLACEMENT] Both players ready, expecting battle-started event');
 			} else {
-				message = '[YOU ARE READY] - [WAITING FOR OPPONENT...]';
+				messageStore.show('[YOU ARE READY] - [WAITING FOR OPPONENT...]', 'info');
 				console.log('[PLACEMENT] Waiting for opponent to ready');
 			}
 		} else {
@@ -94,9 +93,6 @@
 		</div>
 	</div>
 	<ResourcePlacement grid={myGrid} onComplete={handleResourcesPlaced} />
-	{#if message}
-		<div class="message">{message}</div>
-	{/if}
 	{#if myGrid.resources.length === 6 && !isPlayerReady}
 		<div class="ready-confirmation">
 			<button class="confirm-ready-btn" on:click={confirmReady}>
@@ -149,15 +145,6 @@
 		border-color: #0f0;
 		color: #0f0;
 		box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-	}
-
-	.message {
-		margin-top: 1rem;
-		padding: 1rem;
-		background: #001100;
-		border: 2px solid #0f0;
-		color: #0f0;
-		text-align: center;
 	}
 
 	.ready-confirmation {
