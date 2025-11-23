@@ -46,7 +46,7 @@
 						{#if cell.status === 'hit'}
 							<span class="hit-marker">⚡</span>
 						{:else if cell.status === 'destroyed'}
-							<span class="destroyed-marker">💀</span>
+							<span class="destroyed-marker">⚡</span>
 						{:else if cell.status === 'miss'}
 							<span class="miss-marker">·</span>
 						{:else if isOwnGrid && cell.resourceType}
@@ -143,9 +143,9 @@
 	}
 
 	.cell-destroyed {
-		background: #330000;
-		border-color: #ff0000;
-		box-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+		background: #333333;
+		border-color: #666666;
+		box-shadow: 0 0 10px rgba(128, 128, 128, 0.5);
 	}
 
 	.hit-marker,
@@ -154,6 +154,10 @@
 	.resource-marker {
 		position: absolute;
 		animation: fadeIn 0.3s ease;
+	}
+
+	.destroyed-marker {
+		color: #888888;
 	}
 
 	@keyframes hit-pulse {

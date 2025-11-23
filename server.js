@@ -122,7 +122,7 @@ function processAttack(gameState, attackerIndex, coordinate) {
 			coordinate,
 			status: 'miss',
 			points: 0,
-			message: '[MISS] - [TIMEOUT]'
+			message: '[MISSED]'
 		};
 	}
 
@@ -180,7 +180,8 @@ function processAttack(gameState, attackerIndex, coordinate) {
 			status: 'destroyed',
 			resourceType: resource.type,
 			points: points + destroyPoints,
-			message: `[${RESOURCES[resource.type].name.toUpperCase()} OFFLINE] - [SYSTEM COMPROMISED]`
+			message: `[${RESOURCES[resource.type].name.toUpperCase()} OFFLINE] - [SYSTEM COMPROMISED]`,
+			destroyedCoordinates: resource.coordinates
 		};
 	}
 
@@ -410,6 +411,58 @@ io.on('connection', (socket) => {
 		}
 	});
 
+	socket.on('request-rematch', (gameId, playerId) => {
+		const gameRoom = gameRooms.get(gameId);
+		if (!gameRoom) return;
+
+		// Initialize rematch requests if not present
+		if (!gameRoom.rematchRequests) {
+			gameRoom.rematchRequests = new Set();
+		}
+
+		gameRoom.rematchRequests.add(playerId);
+		console.log(`[REMATCH] Player ${playerId} requested rematch in game ${gameId}`);
+
+		// Notify the other player
+		const otherPlayerIndex = gameRoom.gameState.players[0].id === playerId ? 1 : 0;
+		const otherPlayer = gameRoom.gameState.players[otherPlayerIndex];
+		if (otherPlayer) {
+			const otherPlayerSocket = gameRoom.playerSockets.get(otherPlayer.id);
+			if (otherPlayerSocket) {
+				io.to(otherPlayerSocket).emit('opponent-wants-rematch');
+			}
+		}
+
+		// Check if both players want rematch
+		if (gameRoom.rematchRequests.size === 2) {
+			console.log(`[REMATCH] Both players accepted - restarting game ${gameId}`);
+			
+			// Reset game state
+			gameRoom.gameState.phase = 'placement';
+			gameRoom.gameState.currentTurn = 0;
+			gameRoom.gameState.winner = null;
+			gameRoom.rematchRequests.clear();
+
+			// Reset both players
+			for (let player of gameRoom.gameState.players) {
+				if (player) {
+					player.grid = createEmptyGrid();
+					player.score = 0;
+					player.abilities = {
+						pingSweepAvailable: false,
+						adminAccessActive: false,
+						ddosEffectActive: false
+					};
+					player.destroyedResources = new Set();
+					player.isReady = false;
+				}
+			}
+
+			// Notify both players to restart
+			io.to(gameId).emit('rematch-accepted');
+		}
+	});
+
 	socket.on('disconnect', () => {
 		console.log(`[DISCONNECT] Client disconnected: ${socket.id}`);
 		for (const [gameId, gameRoom] of gameRooms.entries()) {
@@ -426,7 +479,7 @@ io.on('connection', (socket) => {
 
 app.use(handler);
 
-const PORT = process.env.PORT || 50955;
+const PORT = process.env.PORT || 50680;
 server.listen(PORT, '0.0.0.0', () => {
 	console.log(`[SERVER] BattleChip running on http://localhost:${PORT}`);
 });

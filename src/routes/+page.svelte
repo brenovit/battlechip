@@ -12,6 +12,8 @@
 	let myGrid: GridType = createEmptyGrid();
 	let opponentGrid: GridType = createEmptyGrid();
 	let score = 0;
+	let damageCaused = 0;
+	let damageTaken = 0;
 
 	$: phase = $gameStore.phase;
 	
@@ -42,9 +44,9 @@
 	{:else if phase === 'placement'}
 		<PlacementPhase bind:myGrid />
 	{:else if phase === 'battle'}
-		<BattlePhase bind:myGrid bind:opponentGrid bind:score />
+		<BattlePhase bind:myGrid bind:opponentGrid bind:score bind:damageCaused bind:damageTaken />
 	{:else if phase === 'game-over'}
-		<GameOver {score} onRestart={() => window.location.reload()} />
+		<GameOver {score} {damageCaused} {damageTaken} playerIndex={$gameStore.playerIndex} winner={$gameStore.winner} onRestart={() => window.location.reload()} />
 	{/if}
 </div>
 

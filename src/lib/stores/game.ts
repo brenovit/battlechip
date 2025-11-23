@@ -12,6 +12,10 @@ interface GameStore {
 	isMyTurn: boolean;
 	opponentName: string | null;
 	socket: Socket | null;
+	winner: number | null;
+	opponentWantsRematch: boolean;
+	requestedRematch: boolean;
+	opponentDisconnected: boolean;
 }
 
 function createGameStore() {
@@ -24,7 +28,11 @@ function createGameStore() {
 		opponentState: null,
 		isMyTurn: false,
 		opponentName: null,
-		socket: null
+		socket: null,
+		winner: null,
+		opponentWantsRematch: false,
+		requestedRematch: false,
+		opponentDisconnected: false
 	});
 
 	let socket: Socket | null = null;
@@ -91,7 +99,31 @@ function createGameStore() {
 
 			socket.on('game-over', (winner: number, finalScores: [number, number]) => {
 				console.log('[GAME] Game over! Winner:', winner, 'Scores:', finalScores);
-				update(state => ({ ...state, phase: 'game-over' }));
+				update(state => ({ ...state, phase: 'game-over', winner }));
+			});
+
+			socket.on('opponent-wants-rematch', () => {
+				console.log('[GAME] Opponent wants a rematch!');
+				update(state => ({ ...state, opponentWantsRematch: true }));
+			});
+
+			socket.on('rematch-accepted', () => {
+				console.log('[GAME] Rematch accepted! Restarting game...');
+				update(state => ({ 
+					...state, 
+					phase: 'placement',
+					winner: null,
+					myState: null,
+					opponentState: null,
+					isMyTurn: false,
+					opponentWantsRematch: false,
+					requestedRematch: false
+				}));
+			});
+
+			socket.on('player-disconnected', (playerId: string) => {
+				console.log('[GAME] Player disconnected:', playerId);
+				update(state => ({ ...state, opponentDisconnected: true }));
 			});
 
 			socket.on('error', (message: string) => {
@@ -160,6 +192,20 @@ function createGameStore() {
 				update(s => ({ ...s, isMyTurn: false }));
 			});
 		},
+		requestRematch: () => {
+			if (!socket) return;
+
+			const state = { gameId: '', playerId: '' };
+			const unsubscribe = subscribe(s => {
+				state.gameId = s.gameId || '';
+				state.playerId = s.playerId || '';
+			});
+			unsubscribe();
+
+			console.log('[GAME] Requesting rematch...');
+			socket.emit('request-rematch', state.gameId, state.playerId);
+			update(s => ({ ...s, requestedRematch: true }));
+		},
 		getSocket: () => socket,
 		reset: () => {
 			if (socket) {
@@ -175,7 +221,11 @@ function createGameStore() {
 				opponentState: null,
 				isMyTurn: false,
 				opponentName: null,
-				socket: null
+				socket: null,
+				winner: null,
+				opponentWantsRematch: false,
+				requestedRematch: false,
+				opponentDisconnected: false
 			});
 		}
 	};

@@ -8,6 +8,8 @@
 	export let myGrid: GridType;
 	export let opponentGrid: GridType;
 	export let score: number;
+	export let damageCaused: number = 0;
+	export let damageTaken: number = 0;
 
 	$: opponentName = $gameStore.opponentName;
 	$: isMyTurn = $gameStore.isMyTurn;
@@ -29,6 +31,8 @@
 	function handleOpponentAttack(coordinate: Coordinate, wasHit: boolean) {
 		if (wasHit) {
 			myGrid.cells[coordinate.row][coordinate.col].status = 'hit';
+			damageTaken += 1;
+			
 			const resource = myGrid.resources.find(r => 
 				r.coordinates.some(c => c.row === coordinate.row && c.col === coordinate.col)
 			);
@@ -56,14 +60,35 @@
 		}
 
 		gameStore.attack(coord, (result) => {
+			// Check if already targeted - if so, don't update the grid
+			if (result.message === '[ALREADY TARGETED]') {
+				messageStore.show(result.message, 'warning');
+				return;
+			}
+
 			const msgType = result.status === 'miss' ? 'warning' : result.status === 'destroyed' ? 'success' : 'info';
 			messageStore.show(result.message, msgType);
 			score += result.points;
+			
+			// Track damage caused (hits and destroyed count as damage)
+			if (result.status === 'hit' || result.status === 'destroyed') {
+				damageCaused += 1;
+			}
 
 			if (result.status !== 'miss') {
-				opponentGrid.cells[coord.row][coord.col].status = result.status;
-				if (result.resourceType) {
-					opponentGrid.cells[coord.row][coord.col].resourceType = result.resourceType;
+				// If resource destroyed, update all cells of that resource
+				if (result.status === 'destroyed' && result.destroyedCoordinates) {
+					for (const destroyedCoord of result.destroyedCoordinates) {
+						opponentGrid.cells[destroyedCoord.row][destroyedCoord.col].status = 'destroyed';
+						if (result.resourceType) {
+							opponentGrid.cells[destroyedCoord.row][destroyedCoord.col].resourceType = result.resourceType;
+						}
+					}
+				} else {
+					opponentGrid.cells[coord.row][coord.col].status = result.status;
+					if (result.resourceType) {
+						opponentGrid.cells[coord.row][coord.col].resourceType = result.resourceType;
+					}
 				}
 			} else {
 				opponentGrid.cells[coord.row][coord.col].status = 'miss';
