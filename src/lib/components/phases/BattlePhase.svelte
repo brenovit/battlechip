@@ -1,14 +1,38 @@
 <script lang="ts">
+	import { gameStore } from '$lib/stores/game';
 	import Grid from '$lib/components/Grid.svelte';
 	import type { Grid as GridType, Coordinate } from '$lib/types/game';
 
 	export let myGrid: GridType;
 	export let opponentGrid: GridType;
-	export let opponentName: string;
-	export let isMyTurn: boolean;
 	export let score: number;
-	export let message: string;
-	export let onAttack: (coord: Coordinate) => void;
+
+	let message = '';
+
+	$: opponentName = $gameStore.opponentName;
+	$: isMyTurn = $gameStore.isMyTurn;
+
+	function handleAttack(coord: Coordinate) {
+		if (!isMyTurn) {
+			message = '[ERROR] - Not your turn';
+			return;
+		}
+
+		gameStore.attack(coord, (result) => {
+			message = result.message;
+			score += result.points;
+
+			if (result.status !== 'miss') {
+				opponentGrid.cells[coord.row][coord.col].status = result.status;
+				if (result.resourceType) {
+					opponentGrid.cells[coord.row][coord.col].resourceType = result.resourceType;
+				}
+			} else {
+				opponentGrid.cells[coord.row][coord.col].status = 'miss';
+			}
+			opponentGrid = opponentGrid;
+		});
+	}
 </script>
 
 <div class="battle-phase">
@@ -34,7 +58,7 @@
 
 		<div class="grid-wrapper">
 			<h4>[ATTACK GRID]</h4>
-			<Grid cells={opponentGrid.cells} onCellClick={onAttack} />
+			<Grid cells={opponentGrid.cells} onCellClick={handleAttack} />
 		</div>
 	</div>
 

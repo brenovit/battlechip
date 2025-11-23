@@ -1,14 +1,81 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { gameStore } from '$lib/stores/game';
 	import ResourcePlacement from '$lib/components/ResourcePlacement.svelte';
+	import { createEmptyGrid } from '$lib/utils/grid';
 	import type { Grid } from '$lib/types/game';
 
-	export let grid: Grid;
-	export let opponentName: string;
-	export let isPlayerReady: boolean;
-	export let isOpponentReady: boolean;
-	export let message: string;
-	export let onResourcesPlaced: () => void;
-	export let onConfirmReady: () => void;
+	export let myGrid: Grid;
+
+	let message = '';
+	let isPlayerReady = false;
+	let isOpponentReady = false;
+
+	$: opponentName = $gameStore.opponentName;
+
+	onMount(() => {
+		const socket = gameStore.getSocket();
+		if (socket) {
+			socket.on('opponent-ready', () => {
+				isOpponentReady = true;
+				message = '[OPPONENT READY] - [WAITING FOR BATTLE TO START...]';
+			});
+		}
+	});
+
+	function handleResourcesPlaced() {
+		const socket = gameStore.getSocket();
+		if (socket && $gameStore.gameId && $gameStore.playerId) {
+			const resourcePlacements = myGrid.resources.map(resource => {
+				const firstCoord = resource.coordinates[0];
+				const isHorizontal = resource.coordinates.length > 1 && 
+					resource.coordinates[0].row === resource.coordinates[1].row;
+				
+				return {
+					type: resource.type,
+					start: firstCoord,
+					orientation: isHorizontal ? 'horizontal' : 'vertical'
+				};
+			});
+
+			console.log('[PLACEMENT] Emitting place-resources event', {
+				gameId: $gameStore.gameId,
+				playerId: $gameStore.playerId,
+				resourceCount: resourcePlacements.length
+			});
+			socket.emit('place-resources', $gameStore.gameId, $gameStore.playerId, resourcePlacements);
+			message = '[RESOURCES DEPLOYED] - [CONFIRM WHEN READY]';
+			myGrid = myGrid;
+		}
+	}
+
+	function confirmReady() {
+		const socket = gameStore.getSocket();
+		console.log('[PLACEMENT] confirmReady() called');
+		console.log('[PLACEMENT] isPlayerReady:', isPlayerReady, 'isOpponentReady:', isOpponentReady);
+		
+		if (socket && $gameStore.gameId && $gameStore.playerId) {
+			console.log('[PLACEMENT] Emitting player-ready event', {
+				gameId: $gameStore.gameId,
+				playerId: $gameStore.playerId
+			});
+			socket.emit('player-ready', $gameStore.gameId, $gameStore.playerId);
+			isPlayerReady = true;
+			if (isOpponentReady) {
+				message = '[BOTH PLAYERS READY] - [INITIATING BATTLE...]';
+				console.log('[PLACEMENT] Both players ready, expecting battle-started event');
+			} else {
+				message = '[YOU ARE READY] - [WAITING FOR OPPONENT...]';
+				console.log('[PLACEMENT] Waiting for opponent to ready');
+			}
+		} else {
+			console.error('[PLACEMENT] Cannot emit player-ready - missing socket, gameId, or playerId', {
+				hasSocket: !!socket,
+				gameId: $gameStore.gameId,
+				playerId: $gameStore.playerId
+			});
+		}
+	}
 </script>
 
 <div class="placement-phase">
@@ -26,13 +93,13 @@
 			</div>
 		</div>
 	</div>
-	<ResourcePlacement {grid} onComplete={onResourcesPlaced} />
+	<ResourcePlacement grid={myGrid} onComplete={handleResourcesPlaced} />
 	{#if message}
 		<div class="message">{message}</div>
 	{/if}
-	{#if grid.resources.length === 6 && !isPlayerReady}
+	{#if myGrid.resources.length === 6 && !isPlayerReady}
 		<div class="ready-confirmation">
-			<button class="confirm-ready-btn" on:click={onConfirmReady}>
+			<button class="confirm-ready-btn" on:click={confirmReady}>
 				[CONFIRM READY] - [START BATTLE]
 			</button>
 			<p class="ready-hint">Click to confirm you are ready to begin the battle</p>

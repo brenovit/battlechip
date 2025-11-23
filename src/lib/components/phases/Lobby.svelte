@@ -1,12 +1,56 @@
 <script lang="ts">
-	export let playerName: string;
-	export let gameId: string;
-	export let currentGameId: string;
-	export let message: string;
-	export let onCreateGame: () => void;
-	export let onJoinGame: () => void;
-	export let onGenerateRandomName: () => void;
-	export let onCopyNetworkId: () => void;
+	import { gameStore } from '$lib/stores/game';
+
+	let playerName = '';
+	let gameId = '';
+	let message = '';
+
+	$: currentGameId = $gameStore.gameId;
+
+	// Random name generator data
+	const adjectives = ['Cyber', 'Shadow', 'Ghost', 'Quantum', 'Digital', 'Binary', 'Neon', 'Apex', 'Void', 'Echo', 'Prism', 'Nexus', 'Dark', 'Storm', 'Iron', 'Steel', 'Chrome', 'Hyper', 'Ultra', 'Mega'];
+	const nouns = ['Hacker', 'Operator', 'Agent', 'Runner', 'Phantom', 'Warrior', 'Knight', 'Sentinel', 'Reaper', 'Hunter', 'Ninja', 'Samurai', 'Sniper', 'Blade', 'Viper', 'Wolf', 'Raven', 'Phoenix', 'Dragon', 'Tiger'];
+
+	function generateRandomName() {
+		const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+		const noun = nouns[Math.floor(Math.random() * nouns.length)];
+		const num = Math.floor(Math.random() * 99) + 1;
+		playerName = `${adj}${noun}${num}`;
+	}
+
+	function copyNetworkId() {
+		if (currentGameId) {
+			navigator.clipboard.writeText(currentGameId).catch(() => {
+				const textArea = document.createElement('textarea');
+				textArea.value = currentGameId;
+				document.body.appendChild(textArea);
+				textArea.select();
+				document.execCommand('copy');
+				document.body.removeChild(textArea);
+				alert('Network ID copied to clipboard!');
+			});
+		}
+	}
+
+	function createGame() {
+		if (!playerName.trim()) {
+			alert('Please enter your name');
+			return;
+		}
+		gameStore.createGame(playerName);
+		message = '[INITIALIZING NETWORK...]';
+	}
+
+	function joinGame() {
+		console.log('[LOBBY] joinGame() called - playerName:', playerName, 'gameId:', gameId);
+		if (!playerName.trim() || !gameId.trim()) {
+			alert('Please enter your name and game ID');
+			return;
+		}
+		console.log('[LOBBY] Calling gameStore.joinGame()');
+		gameStore.joinGame(gameId.toUpperCase(), playerName);
+		console.log('[LOBBY] gameStore.joinGame() returned');
+	}
 </script>
 
 <div class="lobby">
@@ -24,14 +68,14 @@
 						class="terminal-input"
 						style="flex: 1;"
 					/>
-					<button class="terminal-btn-small" on:click={onGenerateRandomName} title="Generate random name">
+					<button class="terminal-btn-small" on:click={generateRandomName} title="Generate random name">
 						[🎲]
 					</button>
 				</div>
 			</div>
 
 			<div class="button-group">
-				<button class="terminal-btn" on:click={onCreateGame}>
+				<button class="terminal-btn" on:click={createGame}>
 					[CREATE NEW NETWORK]
 				</button>
 			</div>
@@ -51,7 +95,7 @@
 			</div>
 
 			<div class="button-group">
-				<button class="terminal-btn" on:click={onJoinGame}>
+				<button class="terminal-btn" on:click={joinGame}>
 					[INFILTRATE NETWORK]
 				</button>
 			</div>
@@ -61,7 +105,7 @@
 					<p>[NETWORK ID]</p>
 					<div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
 						<p class="code">{currentGameId}</p>
-						<button class="terminal-btn-small" on:click={onCopyNetworkId} title="Copy to clipboard">
+						<button class="terminal-btn-small" on:click={copyNetworkId} title="Copy to clipboard">
 							[📋]
 						</button>
 					</div>
