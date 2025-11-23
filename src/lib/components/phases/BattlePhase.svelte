@@ -106,7 +106,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 1rem;
+		padding: 0.5rem;
 		max-width: 1600px;
 		margin: 0 auto;
 		width: 100%;
@@ -115,20 +115,28 @@
 
 	@media (min-width: 768px) {
 		.battle-phase {
-			padding: 2rem;
+			padding: 1rem;
 		}
 	}
 
 	.battle-header {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
-		margin-bottom: 2rem;
-		padding: 1rem;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+		padding: 0.75rem;
 		background: #001100;
 		border: 2px solid #0f0;
 		width: 100%;
 		box-sizing: border-box;
+	}
+
+	@media (min-width: 768px) {
+		.battle-header {
+			gap: 1rem;
+			margin-bottom: 1.5rem;
+			padding: 1rem;
+		}
 	}
 
 	@media (min-width: 768px) {

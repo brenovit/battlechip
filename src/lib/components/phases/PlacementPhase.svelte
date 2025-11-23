@@ -110,7 +110,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 1rem;
+		padding: 0.5rem;
 		max-width: 1400px;
 		margin: 0 auto;
 		width: 100%;
@@ -119,26 +119,40 @@
 
 	@media (min-width: 768px) {
 		.placement-phase {
-			padding: 2rem;
+			padding: 1rem;
 		}
 	}
 
 	.phase-header {
 		text-align: center;
-		margin-bottom: 2rem;
+		margin-bottom: 1rem;
 		width: 100%;
 	}
 
 	.phase-header h2 {
 		color: #0f0;
-		font-size: 2rem;
-		margin-bottom: 1rem;
+		font-size: 1.5rem;
+		margin-bottom: 0.5rem;
+	}
+
+	@media (min-width: 768px) {
+		.phase-header h2 {
+			font-size: 1.8rem;
+			margin-bottom: 0.75rem;
+		}
 	}
 
 	.opponent-info {
 		color: #0a0;
-		font-size: 1.2rem;
-		margin-bottom: 1rem;
+		font-size: 1rem;
+		margin-bottom: 0.5rem;
+	}
+
+	@media (min-width: 768px) {
+		.opponent-info {
+			font-size: 1.1rem;
+			margin-bottom: 0.75rem;
+		}
 	}
 
 	.ready-status {
@@ -163,8 +177,8 @@
 
 	.ready-confirmation {
 		text-align: center;
-		margin-top: 2rem;
-		padding: 1.5rem;
+		margin-top: 1rem;
+		padding: 1rem;
 		background: #001100;
 		border: 3px solid #0f0;
 		box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
@@ -175,7 +189,8 @@
 
 	@media (min-width: 768px) {
 		.ready-confirmation {
-			padding: 2rem;
+			margin-top: 1.5rem;
+			padding: 1.5rem;
 		}
 	}
 

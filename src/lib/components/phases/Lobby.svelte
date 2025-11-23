@@ -148,11 +148,23 @@
 	}
 
 	.terminal-body {
-		padding: 2rem;
+		padding: 1.25rem;
+	}
+
+	@media (min-width: 768px) {
+		.terminal-body {
+			padding: 1.5rem;
+		}
 	}
 
 	.input-group {
-		margin-bottom: 1.5rem;
+		margin-bottom: 1rem;
+	}
+
+	@media (min-width: 768px) {
+		.input-group {
+			margin-bottom: 1.25rem;
+		}
 	}
 
 	.input-group label {

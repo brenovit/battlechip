@@ -22,11 +22,17 @@
 	}
 
 	.game-over-title {
-		font-size: 3rem;
+		font-size: 2rem;
 		color: #f00;
 		text-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
-		margin-bottom: 2rem;
+		margin-bottom: 1.5rem;
 		animation: flicker 2s infinite;
+	}
+
+	@media (min-width: 768px) {
+		.game-over-title {
+			font-size: 2.5rem;
+		}
 	}
 
 	@keyframes flicker {
@@ -35,9 +41,15 @@
 	}
 
 	.final-score {
-		font-size: 2rem;
+		font-size: 1.5rem;
 		color: #0f0;
-		margin-bottom: 2rem;
+		margin-bottom: 1.5rem;
+	}
+
+	@media (min-width: 768px) {
+		.final-score {
+			font-size: 1.75rem;
+		}
 	}
 
 	.terminal-btn {

@@ -189,33 +189,61 @@
 <style>
 	.placement-container {
 		display: flex;
-		gap: 2rem;
+		gap: 1rem;
 		align-items: flex-start;
-		padding: 2rem;
+		padding: 0.5rem;
 		font-family: 'Courier New', monospace;
+	}
+
+	@media (min-width: 768px) {
+		.placement-container {
+			gap: 1.5rem;
+			padding: 1rem;
+		}
 	}
 
 	.placement-panel {
 		background: #000;
 		border: 2px solid #0f0;
-		padding: 1.5rem;
-		min-width: 300px;
+		padding: 1rem;
+		min-width: 250px;
 		box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+	}
+
+	@media (min-width: 768px) {
+		.placement-panel {
+			padding: 1.25rem;
+			min-width: 280px;
+		}
 	}
 
 	.panel-title {
 		color: #0f0;
 		text-align: center;
-		margin: 0 0 1.5rem 0;
-		font-size: 1.2rem;
+		margin: 0 0 1rem 0;
+		font-size: 1rem;
 		text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+	}
+
+	@media (min-width: 768px) {
+		.panel-title {
+			font-size: 1.1rem;
+			margin: 0 0 1.25rem 0;
+		}
 	}
 
 	.resources-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
-		margin-bottom: 1rem;
+		gap: 0.4rem;
+		margin-bottom: 0.75rem;
+	}
+
+	@media (min-width: 768px) {
+		.resources-list {
+			gap: 0.5rem;
+			margin-bottom: 1rem;
+		}
 	}
 
 	.resource-btn {

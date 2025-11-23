@@ -62,7 +62,7 @@
 
 	.container {
 		min-height: 100vh;
-		padding: 2rem;
+		padding: 1rem;
 		background: 
 			repeating-linear-gradient(
 				0deg,
@@ -73,16 +73,35 @@
 			);
 	}
 
+	@media (min-width: 768px) {
+		.container {
+			padding: 1.5rem;
+		}
+	}
+
 	.header {
 		text-align: center;
-		margin-bottom: 3rem;
+		margin-bottom: 1rem;
+	}
+
+	@media (min-width: 768px) {
+		.header {
+			margin-bottom: 1.5rem;
+		}
 	}
 
 	.title {
-		font-size: 4rem;
+		font-size: 2rem;
 		margin: 0;
 		text-shadow: 0 0 20px rgba(0, 255, 0, 1);
-		letter-spacing: 0.5rem;
+		letter-spacing: 0.3rem;
+	}
+
+	@media (min-width: 768px) {
+		.title {
+			font-size: 3rem;
+			letter-spacing: 0.5rem;
+		}
 	}
 
 	.glitch {
@@ -91,8 +110,14 @@
 	}
 
 	.subtitle {
-		font-size: 1.2rem;
+		font-size: 0.9rem;
 		color: #0a0;
-		margin: 0.5rem 0 0 0;
+		margin: 0.25rem 0 0 0;
+	}
+
+	@media (min-width: 768px) {
+		.subtitle {
+			font-size: 1rem;
+		}
 	}
 </style>
