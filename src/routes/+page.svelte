@@ -14,11 +14,24 @@
 	let score = 0;
 	let damageCaused = 0;
 	let damageTaken = 0;
+	let previousPhase: string = 'lobby';
 
 	$: phase = $gameStore.phase;
 	
 	$: if (phase) {
 		console.log('[PAGE] Phase changed to:', phase);
+		
+		// Reset grids and stats when returning to placement phase (rematch)
+		if (phase === 'placement' && previousPhase === 'game-over') {
+			console.log('[PAGE] Rematch detected - resetting grids and stats');
+			myGrid = createEmptyGrid();
+			opponentGrid = createEmptyGrid();
+			score = 0;
+			damageCaused = 0;
+			damageTaken = 0;
+		}
+		
+		previousPhase = phase;
 	}
 
 	onMount(() => {
