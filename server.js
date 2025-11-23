@@ -275,12 +275,18 @@ io.on('connection', (socket) => {
 		});
 
 		const player1Socket = gameRoom.playerSockets.get(gameRoom.gameState.players[0].id);
+		const player1Name = gameRoom.gameState.players[0].name;
+		
 		if (player1Socket) {
 			console.log(`[SERVER] Emitting opponent-joined to player 1 (socket: ${player1Socket})`);
 			io.to(player1Socket).emit('opponent-joined', playerName);
 		} else {
 			console.log(`[ERROR] Could not find player 1 socket`);
 		}
+		
+		// Send host's name to the joiner
+		console.log(`[SERVER] Emitting opponent-joined to player 2 (socket: ${socket.id})`);
+		io.to(socket.id).emit('opponent-joined', player1Name);
 
 		console.log(`[PLAYER JOINED] ${playerName} joined game ${gameId}`);
 		console.log(`[SERVER] Sending join-game callback with success=true, playerId=${playerId}`);

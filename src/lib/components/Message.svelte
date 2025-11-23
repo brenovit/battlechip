@@ -1,61 +1,58 @@
 <script lang="ts">
 	import { messageStore } from '$lib/stores/message';
+	import { fade, fly } from 'svelte/transition';
 
 	$: message = $messageStore;
 </script>
 
 {#if message.text}
-	<div class="global-message {message.type}" role="alert">
+	<div 
+		class="toast-notification {message.type}" 
+		role="alert"
+		transition:fly={{ y: -20, duration: 300 }}
+	>
 		{message.text}
 	</div>
 {/if}
 
 <style>
-	.global-message {
-		position: relative;
-		margin: 2rem auto 0;
+	.toast-notification {
+		position: fixed;
+		top: 2rem;
+		left: 50%;
+		transform: translateX(-50%);
 		padding: 1rem 2rem;
-		background: rgba(0, 255, 0, 0.1);
+		background: rgba(0, 255, 0, 0.95);
 		border: 2px solid #00ff00;
-		color: #00ff00;
+		color: #000;
 		font-family: 'Courier New', monospace;
 		font-weight: bold;
 		text-align: center;
 		min-width: 300px;
-		max-width: 80%;
-		box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
-		animation: slideUp 0.3s ease-out;
+		max-width: 600px;
+		box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
+		z-index: 9999;
+		pointer-events: none;
 	}
 
-	.global-message.error {
-		background: rgba(255, 0, 0, 0.1);
+	.toast-notification.error {
+		background: rgba(255, 0, 0, 0.95);
 		border-color: #ff0000;
-		color: #ff0000;
-		box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+		color: #000;
+		box-shadow: 0 0 30px rgba(255, 0, 0, 0.8);
 	}
 
-	.global-message.warning {
-		background: rgba(255, 165, 0, 0.1);
+	.toast-notification.warning {
+		background: rgba(255, 165, 0, 0.95);
 		border-color: #ffa500;
-		color: #ffa500;
-		box-shadow: 0 0 20px rgba(255, 165, 0, 0.3);
+		color: #000;
+		box-shadow: 0 0 30px rgba(255, 165, 0, 0.8);
 	}
 
-	.global-message.success {
-		background: rgba(0, 255, 255, 0.1);
+	.toast-notification.success {
+		background: rgba(0, 255, 255, 0.95);
 		border-color: #00ffff;
-		color: #00ffff;
-		box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-	}
-
-	@keyframes slideUp {
-		from {
-			opacity: 0;
-			transform: translateY(20px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
+		color: #000;
+		box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
 	}
 </style>
