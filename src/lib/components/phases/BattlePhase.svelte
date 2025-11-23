@@ -103,19 +103,40 @@
 
 <style>
 	.battle-phase {
-		padding: 2rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 1rem;
 		max-width: 1600px;
 		margin: 0 auto;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	@media (min-width: 768px) {
+		.battle-phase {
+			padding: 2rem;
+		}
 	}
 
 	.battle-header {
 		display: flex;
-		justify-content: space-between;
-		align-items: center;
+		flex-direction: column;
+		gap: 1rem;
 		margin-bottom: 2rem;
 		padding: 1rem;
 		background: #001100;
 		border: 2px solid #0f0;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	@media (min-width: 768px) {
+		.battle-header {
+			flex-direction: row;
+			justify-content: space-between;
+			align-items: center;
+		}
 	}
 
 	.status-panel {
@@ -163,14 +184,24 @@
 
 	.grids-container {
 		display: flex;
+		flex-direction: column;
 		gap: 2rem;
 		justify-content: center;
 		margin-bottom: 2rem;
+		width: 100%;
+	}
+
+	@media (min-width: 1024px) {
+		.grids-container {
+			flex-direction: row;
+		}
 	}
 
 	.grid-wrapper {
 		flex: 1;
 		max-width: 600px;
+		width: 100%;
+		box-sizing: border-box;
 	}
 
 	.grid-wrapper h4 {

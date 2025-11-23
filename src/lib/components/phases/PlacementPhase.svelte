@@ -105,14 +105,26 @@
 
 <style>
 	.placement-phase {
-		padding: 2rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 1rem;
 		max-width: 1400px;
 		margin: 0 auto;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	@media (min-width: 768px) {
+		.placement-phase {
+			padding: 2rem;
+		}
 	}
 
 	.phase-header {
 		text-align: center;
 		margin-bottom: 2rem;
+		width: 100%;
 	}
 
 	.phase-header h2 {
@@ -150,10 +162,19 @@
 	.ready-confirmation {
 		text-align: center;
 		margin-top: 2rem;
-		padding: 2rem;
+		padding: 1.5rem;
 		background: #001100;
 		border: 3px solid #0f0;
 		box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+		width: 100%;
+		max-width: 600px;
+		box-sizing: border-box;
+	}
+
+	@media (min-width: 768px) {
+		.ready-confirmation {
+			padding: 2rem;
+		}
 	}
 
 	.confirm-ready-btn {

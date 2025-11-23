@@ -126,8 +126,17 @@
 		background: #000;
 		border: 3px solid #0f0;
 		box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
-		min-width: 500px;
+		width: 100%;
 		max-width: 600px;
+		box-sizing: border-box;
+		margin: 0 1rem;
+	}
+
+	@media (min-width: 768px) {
+		.terminal {
+			min-width: 500px;
+			margin: 0;
+		}
 	}
 
 	.terminal-header {
