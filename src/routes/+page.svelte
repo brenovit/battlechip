@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { gameStore } from '$lib/stores/game';
-	import Grid from '$lib/components/Grid.svelte';
-	import ResourcePlacement from '$lib/components/ResourcePlacement.svelte';
+	import Lobby from '$lib/components/phases/Lobby.svelte';
+	import PlacementPhase from '$lib/components/phases/PlacementPhase.svelte';
+	import BattlePhase from '$lib/components/phases/BattlePhase.svelte';
+	import GameOver from '$lib/components/phases/GameOver.svelte';
 	import { createEmptyGrid } from '$lib/utils/grid';
 	import type { Coordinate, Grid as GridType } from '$lib/types/game';
 
@@ -204,141 +206,41 @@
 	</header>
 
 	{#if phase === 'lobby'}
-		<div class="lobby">
-			<div class="terminal">
-				<div class="terminal-header">[SYSTEM ACCESS]</div>
-				<div class="terminal-body">
-					<div class="input-group">
-						<label for="name">&gt; USERNAME:</label>
-						<div style="display: flex; gap: 0.5rem; width: 100%;">
-							<input
-								id="name"
-								type="text"
-								bind:value={playerName}
-								placeholder="Enter your handle..."
-								class="terminal-input"
-								style="flex: 1;"
-							/>
-							<button class="terminal-btn-small" on:click={generateRandomName} title="Generate random name">
-								[🎲]
-							</button>
-						</div>
-					</div>
-
-					<div class="button-group">
-						<button class="terminal-btn" on:click={createGame}>
-							[CREATE NEW NETWORK]
-						</button>
-					</div>
-
-					<div class="divider">- OR -</div>
-
-					<div class="input-group">
-						<label for="gameId">&gt; GAME ID:</label>
-						<input
-							id="gameId"
-							type="text"
-							bind:value={gameId}
-							placeholder="Enter game code..."
-							class="terminal-input"
-							style="text-transform: uppercase;"
-						/>
-					</div>
-
-					<div class="button-group">
-						<button class="terminal-btn" on:click={joinGame}>
-							[INFILTRATE NETWORK]
-						</button>
-					</div>
-
-					{#if currentGameId}
-						<div class="game-code">
-							<p>[NETWORK ID]</p>
-							<div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
-								<p class="code">{currentGameId}</p>
-								<button class="terminal-btn-small" on:click={copyNetworkId} title="Copy to clipboard">
-									[📋]
-								</button>
-							</div>
-							<p class="hint">Share this code with your opponent</p>
-						</div>
-					{/if}
-
-					{#if message}
-						<div class="message">{message}</div>
-					{/if}
-				</div>
-			</div>
-		</div>
+		<Lobby 
+			bind:playerName 
+			bind:gameId 
+			{currentGameId}
+			{message}
+			onCreateGame={createGame}
+			onJoinGame={joinGame}
+			onGenerateRandomName={generateRandomName}
+			onCopyNetworkId={copyNetworkId}
+		/>
 	{:else if phase === 'placement'}
-		<div class="placement-phase">
-			<div class="phase-header">
-				<h2>[DEPLOYMENT PHASE]</h2>
-				{#if opponentName}
-					<p class="opponent-info">[OPPONENT DETECTED: {opponentName}]</p>
-				{/if}
-				<div class="ready-status">
-					<div class="status-indicator" class:ready={isPlayerReady}>
-						[YOU: {isPlayerReady ? '✓ READY' : '⧗ DEPLOYING'}]
-					</div>
-					<div class="status-indicator" class:ready={isOpponentReady}>
-						[OPPONENT: {isOpponentReady ? '✓ READY' : '⧗ DEPLOYING'}]
-					</div>
-				</div>
-			</div>
-			<ResourcePlacement grid={myGrid} onComplete={handleResourcesPlaced} />
-			{#if message}
-				<div class="message">{message}</div>
-			{/if}
-			{#if myGrid.resources.length === 6 && !isPlayerReady}
-				<div class="ready-confirmation">
-					<button class="confirm-ready-btn" on:click={confirmReady}>
-						[CONFIRM READY] - [START BATTLE]
-					</button>
-					<p class="ready-hint">Click to confirm you are ready to begin the battle</p>
-				</div>
-			{/if}
-		</div>
+		<PlacementPhase 
+			grid={myGrid}
+			{opponentName}
+			{isPlayerReady}
+			{isOpponentReady}
+			{message}
+			onResourcesPlaced={handleResourcesPlaced}
+			onConfirmReady={confirmReady}
+		/>
 	{:else if phase === 'battle'}
-		<div class="battle-phase">
-			<div class="battle-header">
-				<div class="status-panel">
-					<h3>[YOUR NETWORK]</h3>
-					<p>Score: {score}</p>
-				</div>
-				<div class="turn-indicator" class:active={isMyTurn}>
-					{isMyTurn ? '[YOUR TURN]' : '[OPPONENT TURN]'}
-				</div>
-				<div class="status-panel">
-					<h3>[ENEMY NETWORK]</h3>
-					<p>Operator: {opponentName || 'Unknown'}</p>
-				</div>
-			</div>
-
-			<div class="grids-container">
-				<div class="grid-wrapper">
-					<h4>[DEFENSIVE GRID]</h4>
-					<Grid isOwnGrid={true} cells={myGrid.cells} />
-				</div>
-
-				<div class="grid-wrapper">
-					<h4>[ATTACK GRID]</h4>
-					<Grid cells={opponentGrid.cells} onCellClick={handleAttack} />
-				</div>
-			</div>
-
-			{#if message}
-				<div class="battle-message">{message}</div>
-			{/if}
-		</div>
+		<BattlePhase 
+			{myGrid}
+			{opponentGrid}
+			{opponentName}
+			{isMyTurn}
+			{score}
+			{message}
+			onAttack={handleAttack}
+		/>
 	{:else if phase === 'game-over'}
-		<div class="game-over">
-			<h2 class="game-over-title">[NETWORK COMPROMISED]</h2>
-			<p class="final-score">Final Score: {score}</p>
-			<button class="terminal-btn" on:click={() => window.location.reload()}>
-				[DISCONNECT]
-			</button>
-		</div>
+		<GameOver 
+			{score}
+			onRestart={() => window.location.reload()}
+		/>
 	{/if}
 </div>
 
@@ -386,353 +288,5 @@
 		font-size: 1.2rem;
 		color: #0a0;
 		margin: 0.5rem 0 0 0;
-	}
-
-	.lobby {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		min-height: 60vh;
-	}
-
-	.terminal {
-		background: #000;
-		border: 3px solid #0f0;
-		box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
-		min-width: 500px;
-		max-width: 600px;
-	}
-
-	.terminal-header {
-		background: #0f0;
-		color: #000;
-		padding: 0.5rem 1rem;
-		font-weight: bold;
-		text-align: center;
-	}
-
-	.terminal-body {
-		padding: 2rem;
-	}
-
-	.input-group {
-		margin-bottom: 1.5rem;
-	}
-
-	.input-group label {
-		display: block;
-		margin-bottom: 0.5rem;
-		color: #0f0;
-	}
-
-	.terminal-input {
-		width: 100%;
-		background: #001100;
-		border: 2px solid #0f0;
-		color: #0f0;
-		padding: 0.75rem;
-		font-family: inherit;
-		font-size: 1rem;
-		box-sizing: border-box;
-	}
-
-	.terminal-input:focus {
-		outline: none;
-		box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-	}
-
-	.button-group {
-		margin-bottom: 1.5rem;
-	}
-
-	.terminal-btn {
-		width: 100%;
-		background: #001100;
-		border: 2px solid #0f0;
-		color: #0f0;
-		padding: 1rem;
-		font-family: inherit;
-		font-size: 1rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.terminal-btn:hover {
-		background: #003300;
-		box-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
-	}
-
-	.terminal-btn-small {
-		background: #001100;
-		border: 2px solid #0f0;
-		color: #0f0;
-		padding: 0.5rem 0.75rem;
-		font-family: inherit;
-		font-size: 1rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		white-space: nowrap;
-	}
-
-	.terminal-btn-small:hover {
-		background: #003300;
-		box-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
-	}
-
-	.divider {
-		text-align: center;
-		color: #0a0;
-		margin: 1.5rem 0;
-	}
-
-	.game-code {
-		background: #001100;
-		border: 2px solid #0f0;
-		padding: 1rem;
-		text-align: center;
-		margin-top: 1.5rem;
-	}
-
-	.game-code .code {
-		font-size: 2rem;
-		font-weight: bold;
-		letter-spacing: 0.3rem;
-		margin: 0.5rem 0;
-		text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
-	}
-
-	.game-code .hint {
-		font-size: 0.9rem;
-		color: #0a0;
-		margin: 0.5rem 0 0 0;
-	}
-
-	.message {
-		margin-top: 1rem;
-		padding: 1rem;
-		background: #001100;
-		border: 2px solid #0f0;
-		text-align: center;
-		animation: fadeIn 0.3s ease;
-	}
-
-	.placement-phase {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 2rem;
-	}
-
-	.phase-header {
-		text-align: center;
-	}
-
-	.phase-header h2 {
-		font-size: 2rem;
-		margin: 0 0 1rem 0;
-		text-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
-	}
-
-	.opponent-info {
-		color: #0a0;
-		margin: 0 0 1rem 0;
-	}
-
-	.ready-status {
-		display: flex;
-		justify-content: center;
-		gap: 2rem;
-		margin-top: 1rem;
-	}
-
-	.status-indicator {
-		padding: 0.75rem 1.5rem;
-		border: 2px solid #555;
-		background: #001100;
-		color: #888;
-		font-size: 1rem;
-		transition: all 0.3s ease;
-	}
-
-	.status-indicator.ready {
-		border-color: #0f0;
-		color: #0f0;
-		box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
-		animation: pulse 2s infinite;
-	}
-
-	.ready-confirmation {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 1rem;
-		margin-top: 2rem;
-		padding: 2rem;
-		background: #000;
-		border: 3px solid #0f0;
-		box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
-	}
-
-	.confirm-ready-btn {
-		background: #002200;
-		border: 3px solid #0f0;
-		color: #0f0;
-		padding: 1.5rem 3rem;
-		font-family: inherit;
-		font-size: 1.3rem;
-		font-weight: bold;
-		cursor: pointer;
-		transition: all 0.3s ease;
-		animation: pulse-bright 1.5s infinite;
-	}
-
-	.confirm-ready-btn:hover {
-		background: #004400;
-		box-shadow: 0 0 30px rgba(0, 255, 0, 1);
-		transform: scale(1.05);
-	}
-
-	.ready-hint {
-		color: #0a0;
-		margin: 0;
-		font-size: 0.9rem;
-		text-align: center;
-	}
-
-	@keyframes pulse-bright {
-		0%, 100% {
-			box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
-		}
-		50% {
-			box-shadow: 0 0 30px rgba(0, 255, 0, 1);
-		}
-	}
-
-	.battle-phase {
-		display: flex;
-		flex-direction: column;
-		gap: 2rem;
-	}
-
-	.battle-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		background: #000;
-		border: 2px solid #0f0;
-		padding: 1rem 2rem;
-		box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
-	}
-
-	.status-panel h3 {
-		margin: 0 0 0.5rem 0;
-		font-size: 1.2rem;
-	}
-
-	.status-panel p {
-		margin: 0;
-		color: #0a0;
-	}
-
-	.turn-indicator {
-		font-size: 1.5rem;
-		font-weight: bold;
-		padding: 1rem 2rem;
-		border: 2px solid #555;
-		transition: all 0.3s ease;
-	}
-
-	.turn-indicator.active {
-		border-color: #0f0;
-		box-shadow: 0 0 20px rgba(0, 255, 0, 1);
-		animation: pulse 1.5s infinite;
-	}
-
-	.grids-container {
-		display: flex;
-		justify-content: center;
-		gap: 3rem;
-		flex-wrap: wrap;
-	}
-
-	.grid-wrapper {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 1rem;
-	}
-
-	.grid-wrapper h4 {
-		margin: 0;
-		font-size: 1.3rem;
-		text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
-	}
-
-	.battle-message {
-		text-align: center;
-		font-size: 1.5rem;
-		padding: 1rem;
-		background: #001100;
-		border: 2px solid #0f0;
-		box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
-		animation: messageSlide 0.3s ease;
-	}
-
-	.game-over {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		min-height: 60vh;
-		gap: 2rem;
-	}
-
-	.game-over-title {
-		font-size: 3rem;
-		text-shadow: 0 0 30px rgba(255, 0, 0, 1);
-		color: #f00;
-		animation: glitch 0.5s infinite;
-	}
-
-	.final-score {
-		font-size: 2rem;
-	}
-
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
-	}
-
-	@keyframes pulse {
-		0%, 100% {
-			box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-		}
-		50% {
-			box-shadow: 0 0 30px rgba(0, 255, 0, 1);
-		}
-	}
-
-	@keyframes messageSlide {
-		from {
-			transform: translateY(-20px);
-			opacity: 0;
-		}
-		to {
-			transform: translateY(0);
-			opacity: 1;
-		}
-	}
-
-	@keyframes glitch {
-		0%, 100% {
-			text-shadow: 0 0 30px rgba(255, 0, 0, 1);
-		}
-		50% {
-			text-shadow: 0 0 30px rgba(255, 0, 0, 1), 5px 0 rgba(0, 255, 0, 0.5), -5px 0 rgba(0, 0, 255, 0.5);
-		}
 	}
 </style>
