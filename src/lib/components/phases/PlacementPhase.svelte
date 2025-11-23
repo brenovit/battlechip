@@ -94,7 +94,7 @@
 			</div>
 		</div>
 	</div>
-	<ResourcePlacement grid={myGrid} />
+	<ResourcePlacement bind:grid={myGrid} />
 	{#if myGrid.resources.length === 6 && !isPlayerReady}
 		<div class="ready-confirmation">
 			<button class="confirm-ready-btn" on:click={confirmReady}>
