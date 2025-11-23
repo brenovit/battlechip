@@ -9,11 +9,17 @@
 	let selectedResource: ResourceType | null = null;
 	let orientation: Orientation = 'horizontal';
 	let placedResources = new Set<ResourceType>();
+	let animationKey = 0;
 
 	const resourceList: ResourceType[] = ['database', 'backup', 'server', 'firewall', 'iot-cluster', 'router'];
 
 	// Reactive declaration to track when all resources are placed
 	$: allResourcesPlaced = placedResources.size === resourceList.length;
+	
+	// Reset animation whenever selectedResource changes
+	$: if (selectedResource !== null) {
+		animationKey++;
+	}
 
 	function randomDeployment() {
 		// Clear existing placements
@@ -167,16 +173,18 @@
 				<div class="grid-row">
 					<div class="row-label">{rowIdx}</div>
 					{#each row as cell}
-						<button
-							class="cell"
-							class:has-resource={!!cell.resourceType}
-							class:preview={getCellPreview(cell.coordinate)}
-							on:click={() => handleCellClick(cell.coordinate)}
-						>
-							{#if cell.resourceType}
-								<span class="resource-marker">█</span>
-							{/if}
-						</button>
+						{#key animationKey}
+							<button
+								class="cell"
+								class:has-resource={!!cell.resourceType}
+								class:preview={getCellPreview(cell.coordinate)}
+								on:click={() => handleCellClick(cell.coordinate)}
+							>
+								{#if cell.resourceType}
+									<span class="resource-marker">█</span>
+								{/if}
+							</button>
+						{/key}
 					{/each}
 				</div>
 			{/each}
