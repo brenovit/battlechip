@@ -12,10 +12,8 @@
 
 <style>
 	.global-message {
-		position: fixed;
-		bottom: 2rem;
-		left: 50%;
-		transform: translateX(-50%);
+		position: relative;
+		margin: 2rem auto 0;
 		padding: 1rem 2rem;
 		background: rgba(0, 255, 0, 0.1);
 		border: 2px solid #00ff00;
@@ -23,7 +21,6 @@
 		font-family: 'Courier New', monospace;
 		font-weight: bold;
 		text-align: center;
-		z-index: 1000;
 		min-width: 300px;
 		max-width: 80%;
 		box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
@@ -54,11 +51,11 @@
 	@keyframes slideUp {
 		from {
 			opacity: 0;
-			transform: translateX(-50%) translateY(20px);
+			transform: translateY(20px);
 		}
 		to {
 			opacity: 1;
-			transform: translateX(-50%) translateY(0);
+			transform: translateY(0);
 		}
 	}
 </style>
