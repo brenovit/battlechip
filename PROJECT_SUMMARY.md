@@ -46,8 +46,8 @@
 ```
 Frontend (SvelteKit 5)
     ↓ WebSocket (Socket.io)
-Backend (Node.js + Express)
-    ↓ Game Logic
+Backend (Node.js + Express + TypeScript)
+    ↓ Modular Game Logic
 Game Engine (TypeScript)
 ```
 
@@ -55,13 +55,22 @@ Game Engine (TypeScript)
 
 | Component | File | Purpose |
 |-----------|------|---------|
+| **Frontend** |  |  |
 | Game Types | `src/lib/types/game.ts` | TypeScript definitions |
 | Game Engine | `src/lib/server/game-engine.ts` | Core game logic |
-| Socket Server | `server.js` | WebSocket handlers |
 | Grid Component | `src/lib/components/Grid.svelte` | Reusable grid UI |
 | Placement UI | `src/lib/components/ResourcePlacement.svelte` | Resource deployment |
 | Game Store | `src/lib/stores/game.ts` | Client state management |
 | Main Page | `src/routes/+page.svelte` | Complete game interface |
+| **Backend (NEW!)** |  |  |
+| Server Entry | `server/server.ts` | Socket.IO + Express server |
+| Type Definitions | `server/types.ts` | Game state types |
+| Game Constants | `server/constants.ts` | Resource configs |
+| Lobby Handlers | `server/handlers/lobbyHandlers.ts` | Create/join game |
+| Placement Handlers | `server/handlers/placementHandlers.ts` | Resource placement |
+| Battle Handlers | `server/handlers/battleHandlers.ts` | Attack processing |
+| Game Logic | `server/game/gameLogic.ts` | Attack mechanics |
+| Grid Utils | `server/utils/grid.ts` | Grid utilities |
 
 ### Scoring System
 
@@ -95,18 +104,39 @@ npm run dev
 
 ```
 battlechip/
-├── src/
+├── src/                     # Frontend (SvelteKit)
 │   ├── lib/
-│   │   ├── components/       # Svelte UI components
-│   │   ├── server/          # Server-side game logic
+│   │   ├── components/      # Svelte UI components
+│   │   ├── server/          # Client-side game logic
 │   │   ├── stores/          # Client state management
 │   │   ├── types/           # TypeScript definitions
 │   │   └── utils/           # Utility functions
 │   └── routes/              # SvelteKit pages
+│
+├── server/                  # Backend (TypeScript) ⭐ NEW!
+│   ├── handlers/            # Socket.IO event handlers
+│   │   ├── lobbyHandlers.ts
+│   │   ├── placementHandlers.ts
+│   │   ├── battleHandlers.ts
+│   │   └── connectionHandlers.ts
+│   ├── game/                # Game logic
+│   │   └── gameLogic.ts
+│   ├── utils/               # Utility functions
+│   │   └── grid.ts
+│   ├── types/               # Type declarations
+│   │   └── handler.d.ts
+│   ├── server.ts            # Main entry point
+│   ├── types.ts             # Type definitions
+│   ├── constants.ts         # Game constants
+│   ├── tsconfig.json        # TypeScript config
+│   └── README.md            # Server documentation
+│
+├── dist/                    # Compiled server (gitignored)
+├── build/                   # Built SvelteKit app (gitignored)
 ├── static/                  # Static assets
-├── server.js                # Production server
+├── server.js                # Legacy server (backup)
 ├── README.md                # Full documentation
-├── QUICKSTART.md            # Quick start guide
+├── TYPESCRIPT_REFACTORING.md # Refactoring guide ⭐ NEW!
 └── package.json             # Dependencies
 ```
 
@@ -189,7 +219,7 @@ Opponent's next turn affected
 
 ## 🎉 Project Status
 
-**Status: COMPLETE ✅**
+**Status: COMPLETE + REFACTORED ✅**
 
 All core requirements from the original prompt have been successfully implemented:
 - ✅ 1v1 multiplayer gameplay
@@ -198,9 +228,16 @@ All core requirements from the original prompt have been successfully implemente
 - ✅ Real-time WebSocket communication
 - ✅ Complete game flow (lobby → placement → battle → game over)
 - ✅ Scoring system with chain bonuses
-- ✅ TypeScript for type safety
+- ✅ TypeScript for type safety (Frontend + Backend)
 - ✅ SvelteKit framework
 - ✅ Comprehensive documentation
+
+### Recent Updates (2025-11-23)
+- ✅ **Server Refactored to TypeScript**: Converted monolithic `server.js` (485 lines) into modular TypeScript architecture in `/server` directory
+- ✅ **Improved Maintainability**: Split into 10 organized files by functionality
+- ✅ **Full Type Safety**: Backend now has complete TypeScript coverage
+- ✅ **Better Code Organization**: Handlers, logic, and utilities in separate modules
+- ✅ **Build Pipeline**: Automated TypeScript compilation with `npm run build:server`
 
 ## 🙏 Credits
 
