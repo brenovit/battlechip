@@ -44,6 +44,11 @@ export interface Player {
   isReady: boolean;
 }
 
+export interface Observer {
+  id: string;
+  name: string;
+}
+
 export interface GameState {
   id: string;
   phase: 'lobby' | 'placement' | 'battle' | 'game-over';
@@ -56,6 +61,8 @@ export interface GameState {
 export interface GameRoom {
   gameState: GameState;
   playerSockets: Map<string, string>;
+  observers: Observer[];
+  observerSockets: Map<string, string>;
   rematchRequests?: Set<string>;
 }
 

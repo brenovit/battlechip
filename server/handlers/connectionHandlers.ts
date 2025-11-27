@@ -16,6 +16,15 @@ export function handleDisconnect(
           break;
         }
       }
+
+      for (const [observerId, socketId] of gameRoom.observerSockets.entries()) {
+        if (socketId === socket.id) {
+          console.log(`[DISCONNECT] Observer disconnected from game ${gameId}`);
+          gameRoom.observers = gameRoom.observers.filter(obs => obs.id !== observerId);
+          gameRoom.observerSockets.delete(observerId);
+          break;
+        }
+      }
     }
   };
 }

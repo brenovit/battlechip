@@ -49,6 +49,18 @@
 		gameStore.joinGame(gameId.toUpperCase(), playerName);
 		console.log('[LOBBY] gameStore.joinGame() returned');
 	}
+
+	function joinAsObserver() {
+		console.log('[LOBBY] joinAsObserver() called - playerName:', playerName, 'gameId:', gameId);
+		if (!playerName.trim() || !gameId.trim()) {
+			messageStore.show('[ERROR] - Please enter your name and game ID', 'error');
+			return;
+		}
+		console.log('[LOBBY] Calling gameStore.joinAsObserver()');
+		gameStore.joinAsObserver(gameId.toUpperCase(), playerName);
+		console.log('[LOBBY] gameStore.joinAsObserver() returned');
+		messageStore.show('[JOINING AS OBSERVER...]', 'info');
+	}
 </script>
 
 <div class="lobby">
@@ -96,6 +108,15 @@
 				<button class="terminal-btn" on:click={joinGame}>
 					[INFILTRATE NETWORK]
 				</button>
+			</div>
+
+			<div class="divider">- OR -</div>
+
+			<div class="button-group">
+				<button class="terminal-btn observer-btn" on:click={joinAsObserver}>
+					[OBSERVE BATTLE]
+				</button>
+				<p class="observer-hint">Watch the battle without participating</p>
 			</div>
 
 			{#if currentGameId}
@@ -255,5 +276,23 @@
 	.hint {
 		font-size: 0.8rem;
 		color: #0a0;
+	}
+
+	.observer-btn {
+		background: #001a1a;
+		border-color: #0aa;
+		color: #0aa;
+	}
+
+	.observer-btn:hover {
+		background: #002a2a;
+		box-shadow: 0 0 15px rgba(0, 170, 170, 0.8);
+	}
+
+	.observer-hint {
+		text-align: center;
+		font-size: 0.85rem;
+		color: #088;
+		margin: 0.5rem 0 0 0;
 	}
 </style>

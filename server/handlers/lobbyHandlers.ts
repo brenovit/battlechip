@@ -34,7 +34,9 @@ export function handleCreateGame(
         currentTurn: 0,
         createdAt: new Date()
       },
-      playerSockets: new Map([[playerId, socket.id]])
+      playerSockets: new Map([[playerId, socket.id]]),
+      observers: [],
+      observerSockets: new Map()
     };
 
     gameRooms.set(gameId, gameRoom);

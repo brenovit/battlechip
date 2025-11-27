@@ -6,6 +6,7 @@
 	import PlacementPhase from '$lib/components/phases/PlacementPhase.svelte';
 	import BattlePhase from '$lib/components/phases/BattlePhase.svelte';
 	import GameOver from '$lib/components/phases/GameOver.svelte';
+	import ObserverView from '$lib/components/phases/ObserverView.svelte';
 	import { createEmptyGrid } from '$lib/utils/grid';
 	import type { Grid as GridType } from '$lib/types/game';
 
@@ -17,6 +18,7 @@
 	let previousPhase: string = 'lobby';
 
 	$: phase = $gameStore.phase;
+	$: isObserver = $gameStore.isObserver;
 	
 	$: if (phase) {
 		console.log('[PAGE] Phase changed to:', phase);
@@ -52,7 +54,9 @@
 		<p class="subtitle">[NETWORK WARFARE SIMULATOR v1.0]</p>
 	</header>
 
-	{#if phase === 'lobby'}
+	{#if isObserver}
+		<ObserverView />
+	{:else if phase === 'lobby'}
 		<Lobby />
 	{:else if phase === 'placement'}
 		<PlacementPhase bind:myGrid />
