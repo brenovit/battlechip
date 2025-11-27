@@ -16,6 +16,11 @@ interface GameStore {
 	opponentWantsRematch: boolean;
 	requestedRematch: boolean;
 	opponentDisconnected: boolean;
+	isObserver: boolean;
+	observerId: string | null;
+	player1State: PlayerState | null;
+	player2State: PlayerState | null;
+	currentTurn: number;
 }
 
 function createGameStore() {
@@ -32,7 +37,12 @@ function createGameStore() {
 		winner: null,
 		opponentWantsRematch: false,
 		requestedRematch: false,
-		opponentDisconnected: false
+		opponentDisconnected: false,
+		isObserver: false,
+		observerId: null,
+		player1State: null,
+		player2State: null,
+		currentTurn: 0
 	});
 
 	let socket: Socket | null = null;
@@ -130,6 +140,38 @@ function createGameStore() {
 				console.error('[ERROR]', message);
 				alert(message);
 			});
+
+			socket.on('observer-state', (observerState: any) => {
+				console.log('[OBSERVER] Received observer state:', observerState);
+				update(state => ({
+					...state,
+					phase: observerState.phase,
+					currentTurn: observerState.currentTurn,
+					player1State: observerState.player1,
+					player2State: observerState.player2
+				}));
+			});
+
+			socket.on('observer-battle-started', (data: any) => {
+				console.log('[OBSERVER] Battle started');
+				update(state => ({
+					...state,
+					phase: 'battle',
+					player1State: { ...state.player1State, grid: data.player1Grid, name: data.player1Name } as PlayerState,
+					player2State: { ...state.player2State, grid: data.player2Grid, name: data.player2Name } as PlayerState,
+					currentTurn: data.currentTurn
+				}));
+			});
+
+			socket.on('observer-attack-update', (data: any) => {
+				console.log('[OBSERVER] Attack update:', data);
+				update(state => ({
+					...state,
+					player1State: state.player1State ? { ...state.player1State, grid: data.player1Grid, score: data.player1Score } : null,
+					player2State: state.player2State ? { ...state.player2State, grid: data.player2Grid, score: data.player2Score } : null,
+					currentTurn: data.currentTurn
+				}));
+			});
 		},
 		createGame: (playerName: string) => {
 			if (!socket) return;
@@ -174,6 +216,30 @@ function createGameStore() {
 				} else {
 					console.error('[GAME] Failed to join game:', error);
 					alert(error || 'Failed to join game');
+				}
+			});
+		},
+		joinAsObserver: (gameId: string, observerName: string) => {
+			console.log('[OBSERVER] joinAsObserver method called - gameId:', gameId, 'name:', observerName);
+			if (!socket) {
+				console.error('[OBSERVER] No socket available!');
+				return;
+			}
+
+			socket.emit('join-as-observer', gameId, observerName, (success: boolean, observerId?: string, error?: string) => {
+				console.log('[OBSERVER] join-as-observer callback - success:', success, 'observerId:', observerId, 'error:', error);
+				if (success && observerId) {
+					console.log('[OBSERVER] Successfully joined as observer:', gameId);
+					update(state => ({
+						...state,
+						gameId,
+						observerId,
+						isObserver: true,
+						phase: 'lobby'
+					}));
+				} else {
+					console.error('[OBSERVER] Failed to join as observer:', error);
+					alert(error || 'Failed to join as observer');
 				}
 			});
 		},
@@ -225,7 +291,12 @@ function createGameStore() {
 				winner: null,
 				opponentWantsRematch: false,
 				requestedRematch: false,
-				opponentDisconnected: false
+				opponentDisconnected: false,
+				isObserver: false,
+				observerId: null,
+				player1State: null,
+				player2State: null,
+				currentTurn: 0
 			});
 		}
 	};

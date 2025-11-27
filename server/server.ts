@@ -15,6 +15,7 @@ import {
   handleRequestRematch
 } from './handlers/battleHandlers.js';
 import { handleDisconnect } from './handlers/connectionHandlers.js';
+import { handleJoinAsObserver } from './handlers/observerHandlers.js';
 
 const app = express();
 const server = createServer(app);
@@ -33,6 +34,7 @@ io.on('connection', (socket) => {
 
   socket.on('create-game', handleCreateGame(socket, io, gameRooms));
   socket.on('join-game', handleJoinGame(socket, io, gameRooms));
+  socket.on('join-as-observer', handleJoinAsObserver(socket, io, gameRooms));
   socket.on('place-resources', handlePlaceResources(socket, io, gameRooms));
   socket.on('player-ready', handlePlayerReady(socket, io, gameRooms));
   socket.on('attack', handleAttack(socket, io, gameRooms));

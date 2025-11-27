@@ -141,6 +141,11 @@ export interface SocketEvents {
 		playerName: string,
 		callback: (success: boolean, playerId?: string, error?: string) => void
 	) => void;
+	'join-as-observer': (
+		gameId: string,
+		observerName: string,
+		callback: (success: boolean, observerId?: string, error?: string) => void
+	) => void;
 	'place-resources': (
 		gameId: string,
 		playerId: string,

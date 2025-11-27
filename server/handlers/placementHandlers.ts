@@ -85,6 +85,19 @@ export function handlePlayerReady(
         }
       }
 
+      for (const observer of gameRoom.observers) {
+        const observerSocket = gameRoom.observerSockets.get(observer.id);
+        if (observerSocket) {
+          io.to(observerSocket).emit('observer-battle-started', {
+            player1Name: gameRoom.gameState.players[0].name,
+            player2Name: gameRoom.gameState.players[1]?.name || 'Unknown',
+            player1Grid: gameRoom.gameState.players[0].grid,
+            player2Grid: gameRoom.gameState.players[1]?.grid,
+            currentTurn: gameRoom.gameState.currentTurn
+          });
+        }
+      }
+
       console.log(`[BATTLE STARTED] Game ${gameId}`);
     } else {
       console.log(`[WAITING] Game ${gameId} - Player 0 ready: ${gameRoom.gameState.players[0]?.isReady}, Player 1 ready: ${gameRoom.gameState.players[1]?.isReady}`);

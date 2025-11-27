@@ -40,6 +40,22 @@ export function handleAttack(
       }
     }
 
+    for (const observer of gameRoom.observers) {
+      const observerSocket = gameRoom.observerSockets.get(observer.id);
+      if (observerSocket) {
+        io.to(observerSocket).emit('observer-attack-update', {
+          attackerIndex,
+          coordinate,
+          result,
+          player1Grid: gameRoom.gameState.players[0].grid,
+          player2Grid: gameRoom.gameState.players[1]?.grid,
+          player1Score: gameRoom.gameState.players[0].score,
+          player2Score: gameRoom.gameState.players[1]?.score || 0,
+          currentTurn: gameRoom.gameState.currentTurn
+        });
+      }
+    }
+
     if (gameRoom.gameState.phase === 'game-over') {
       const finalScores = [
         gameRoom.gameState.players[0].score,
