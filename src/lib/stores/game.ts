@@ -234,8 +234,8 @@ function createGameStore() {
 						...state,
 						gameId,
 						observerId,
-						isObserver: true,
-						phase: 'lobby'
+						isObserver: true
+						// Don't set phase here - let observer-state event handle it
 					}));
 				} else {
 					console.error('[OBSERVER] Failed to join as observer:', error);
