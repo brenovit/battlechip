@@ -1,56 +1,52 @@
-import { createServer } from 'http';
-import express, { RequestHandler } from 'express';
+import { createServer, type IncomingMessage } from 'http';
+import express, { type RequestHandler } from 'express';
 import { Server as SocketIOServer } from 'socket.io';
-import { GameRoom } from './types.js';
-import {
-  handleCreateGame,
-  handleJoinGame
-} from './handlers/lobbyHandlers.js';
-import {
-  handlePlaceResources,
-  handlePlayerReady
-} from './handlers/placementHandlers.js';
-import {
-  handleAttack,
-  handleRequestRematch
-} from './handlers/battleHandlers.js';
-import { handleDisconnect } from './handlers/connectionHandlers.js';
-import { handleJoinAsObserver } from './handlers/observerHandlers.js';
+import { CONFIG } from './config.js';
+import { RoomManager } from './manager.js';
 
 const app = express();
+app.disable('x-powered-by');
 const server = createServer(app);
 
+/** Origin check: explicit allow-list (ALLOWED_ORIGINS) or same-origin; localhost allowed outside production. */
+export function originAllowed(req: IncomingMessage): boolean {
+	const origin = req.headers.origin;
+	if (!origin) return process.env.NODE_ENV !== 'production';
+	if (CONFIG.allowedOrigins.length > 0) return CONFIG.allowedOrigins.includes(origin);
+	try {
+		const u = new URL(origin);
+		if (u.host === req.headers.host) return true;
+		return process.env.NODE_ENV !== 'production' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1');
+	} catch {
+		return false;
+	}
+}
+
 const io = new SocketIOServer(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  }
+	maxHttpBufferSize: CONFIG.maxMessageBytes,
+	allowRequest: (req, cb) => cb(null, originAllowed(req)),
+	serveClient: false
 });
 
-const gameRooms = new Map<string, GameRoom>();
+const manager = new RoomManager();
+manager.attach(io);
 
-io.on('connection', (socket) => {
-  console.log(`[CONNECTION] Client connected: ${socket.id}`);
-
-  socket.on('create-game', handleCreateGame(socket, io, gameRooms));
-  socket.on('join-game', handleJoinGame(socket, io, gameRooms));
-  socket.on('join-as-observer', handleJoinAsObserver(socket, io, gameRooms));
-  socket.on('place-resources', handlePlaceResources(socket, io, gameRooms));
-  socket.on('player-ready', handlePlayerReady(socket, io, gameRooms));
-  socket.on('attack', handleAttack(socket, io, gameRooms));
-  socket.on('request-rematch', handleRequestRematch(socket, io, gameRooms));
-  socket.on('disconnect', handleDisconnect(socket, io, gameRooms));
-});
-
-// Serve SvelteKit app (dynamically imported to avoid TypeScript issues)
+// Serve the SvelteKit app (adapter-node build output).
 const loadHandler = async () => {
-  // @ts-ignore - SvelteKit build output doesn't have type definitions
-  const { handler } = await import('../../build/handler.js');
-  app.use(handler as RequestHandler);
+	// @ts-ignore - SvelteKit build output doesn't have type definitions
+	const { handler } = await import('../../build/handler.js');
+	app.use(handler as RequestHandler);
 };
-loadHandler().catch(console.error);
+loadHandler().catch((e) => console.error('[SERVER] Could not load SvelteKit handler (run `vite build`):', e.message));
 
-const PORT = parseInt(process.env.PORT || '50680', 10);
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[SERVER] BattleChip running on http://localhost:${PORT}`);
+server.listen(CONFIG.port, '0.0.0.0', () => {
+	console.log(`[SERVER] BattleChip running on http://localhost:${CONFIG.port}`);
 });
+
+const shutdown = () => {
+	manager.dispose();
+	io.close();
+	server.close(() => process.exit(0));
+};
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

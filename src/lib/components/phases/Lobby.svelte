@@ -1,298 +1,73 @@
 <script lang="ts">
-	import { gameStore } from '$lib/stores/game';
-	import { messageStore } from '$lib/stores/message';
+	import { createGame, joinGame, observeGame } from '$lib/stores/game';
+	import type { Difficulty } from '$lib/types/game';
 
-	let playerName = '';
-	let gameId = '';
-
-	$: currentGameId = $gameStore.gameId;
-
-	const adjectives = ['Cyber', 'Shadow', 'Ghost', 'Quantum', 'Digital', 'Binary', 'Neon', 'Apex', 'Void', 'Echo', 'Prism', 'Nexus', 'Dark', 'Storm', 'Iron', 'Steel', 'Chrome', 'Hyper', 'Ultra', 'Mega'];
-	const nouns = ['Hacker', 'Operator', 'Agent', 'Runner', 'Phantom', 'Warrior', 'Knight', 'Sentinel', 'Reaper', 'Hunter', 'Ninja', 'Samurai', 'Sniper', 'Blade', 'Viper', 'Wolf', 'Raven', 'Phoenix', 'Dragon', 'Tiger'];
-
-	function generateRandomName() {
-		const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-		const noun = nouns[Math.floor(Math.random() * nouns.length)];
-		const num = Math.floor(Math.random() * 99) + 1;
-		playerName = `${adj}${noun}${num}`;
-	}
-
-	function copyNetworkId() {
-		if (currentGameId) {
-			navigator.clipboard.writeText(currentGameId).catch(() => {
-				const textArea = document.createElement('textarea');
-				textArea.value = currentGameId;
-				document.body.appendChild(textArea);
-				textArea.select();
-				document.execCommand('copy');
-				document.body.removeChild(textArea);
-			});
-		}
-	}
-
-	function createGame() {
-		if (!playerName.trim()) {
-			messageStore.show('[ERROR] - Please enter your name', 'error');
-			return;
-		}
-		gameStore.createGame(playerName);
-		messageStore.show('[INITIALIZING NETWORK...]', 'info');
-	}
-
-	function joinGame() {
-		console.log('[LOBBY] joinGame() called - playerName:', playerName, 'gameId:', gameId);
-		if (!playerName.trim() || !gameId.trim()) {
-			messageStore.show('[ERROR] - Please enter your name and game ID', 'error');
-			return;
-		}
-		console.log('[LOBBY] Calling gameStore.joinGame()');
-		gameStore.joinGame(gameId.toUpperCase(), playerName);
-		console.log('[LOBBY] gameStore.joinGame() returned');
-	}
-
-	function joinAsObserver() {
-		console.log('[LOBBY] joinAsObserver() called - playerName:', playerName, 'gameId:', gameId);
-		if (!playerName.trim() || !gameId.trim()) {
-			messageStore.show('[ERROR] - Please enter your name and game ID', 'error');
-			return;
-		}
-		console.log('[LOBBY] Calling gameStore.joinAsObserver()');
-		gameStore.joinAsObserver(gameId.toUpperCase(), playerName);
-		console.log('[LOBBY] gameStore.joinAsObserver() returned');
-		messageStore.show('[JOINING AS OBSERVER...]', 'info');
-	}
+	let name = $state('');
+	let code = $state('');
+	let difficulty = $state<Difficulty>('easy');
+	const playerName = () => name.trim() || 'Operator';
 </script>
 
 <div class="lobby">
-	<div class="terminal">
-		<div class="terminal-header">[SYSTEM ACCESS]</div>
-		<div class="terminal-body">
-			<div class="input-group">
-				<label for="name">&gt; USERNAME:</label>
-				<div style="display: flex; gap: 0.5rem; width: 100%;">
-					<input
-						id="name"
-						type="text"
-						bind:value={playerName}
-						placeholder="Enter your handle..."
-						class="terminal-input"
-						style="flex: 1;"
-					/>
-					<button class="terminal-btn-small" on:click={generateRandomName} title="Generate random name">
-						[🎲]
-					</button>
-				</div>
-			</div>
+	<label>
+		Operator name
+		<input bind:value={name} maxlength="20" placeholder="Operator" />
+	</label>
 
-			<div class="button-group">
-				<button class="terminal-btn" on:click={createGame}>
-					[CREATE NEW NETWORK]
-				</button>
-			</div>
+	<div class="row">
+		<button onclick={() => createGame(playerName())}>Create game</button>
+	</div>
 
-			<div class="divider">- OR -</div>
+	<div class="row">
+		<select bind:value={difficulty} aria-label="AI difficulty">
+			<option value="easy">Easy</option>
+			<option value="medium">Medium</option>
+			<option value="hard">Hard</option>
+		</select>
+		<button onclick={() => createGame(playerName(), { vsAi: true, difficulty })}>Play vs AI</button>
+	</div>
 
-			<div class="input-group">
-				<label for="gameId">&gt; GAME ID:</label>
-				<input
-					id="gameId"
-					type="text"
-					bind:value={gameId}
-					placeholder="Enter game code..."
-					class="terminal-input"
-					style="text-transform: uppercase;"
-				/>
-			</div>
-
-			<div class="button-group">
-				<button class="terminal-btn" on:click={joinGame}>
-					[INFILTRATE NETWORK]
-				</button>
-			</div>
-
-			<div class="divider">- OR -</div>
-
-			<div class="button-group">
-				<button class="terminal-btn observer-btn" on:click={joinAsObserver}>
-					[OBSERVE BATTLE]
-				</button>
-				<p class="observer-hint">Watch the battle without participating</p>
-			</div>
-
-			{#if currentGameId}
-				<div class="game-code">
-					<p>[NETWORK ID]</p>
-					<div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
-						<p class="code">{currentGameId}</p>
-						<button class="terminal-btn-small" on:click={copyNetworkId} title="Copy to clipboard">
-							[📋]
-						</button>
-					</div>
-					<p class="hint">Share this code with your opponent</p>
-				</div>
-			{/if}
-		</div>
+	<div class="row">
+		<input bind:value={code} maxlength="12" placeholder="GAME CODE" />
+		<button disabled={!code.trim()} onclick={() => joinGame(code, playerName())}>Join</button>
+		<button disabled={!code.trim()} onclick={() => observeGame(code)}>Observe</button>
 	</div>
 </div>
 
 <style>
 	.lobby {
+		max-width: 28rem;
+		margin: 0 auto;
 		display: flex;
-		justify-content: center;
-		align-items: center;
-		min-height: 60vh;
+		flex-direction: column;
+		gap: 1rem;
 	}
-
-	.terminal {
-		background: #000;
-		border: 3px solid #0f0;
-		box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
-		width: 100%;
-		max-width: 600px;
-		box-sizing: border-box;
-		margin: 0 1rem;
+	.row {
+		display: flex;
+		gap: 0.5rem;
 	}
-
-	@media (min-width: 768px) {
-		.terminal {
-			min-width: 500px;
-			margin: 0;
-		}
-	}
-
-	.terminal-header {
-		background: #0f0;
-		color: #000;
-		padding: 0.5rem 1rem;
-		font-weight: bold;
-		text-align: center;
-	}
-
-	.terminal-body {
-		padding: 1.25rem;
-	}
-
-	@media (min-width: 768px) {
-		.terminal-body {
-			padding: 1.5rem;
-		}
-	}
-
-	.input-group {
-		margin-bottom: 1rem;
-	}
-
-	@media (min-width: 768px) {
-		.input-group {
-			margin-bottom: 1.25rem;
-		}
-	}
-
-	.input-group label {
-		display: block;
-		margin-bottom: 0.5rem;
-		color: #0f0;
-	}
-
-	.terminal-input {
-		width: 100%;
-		background: #001100;
-		border: 2px solid #0f0;
-		color: #0f0;
-		padding: 0.75rem;
+	input,
+	select,
+	button {
 		font-family: inherit;
-		font-size: 1rem;
-		box-sizing: border-box;
-	}
-
-	.terminal-input:focus {
-		outline: none;
-		box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-	}
-
-	.button-group {
-		margin-bottom: 1.5rem;
-	}
-
-	.terminal-btn {
-		width: 100%;
 		background: #001100;
-		border: 2px solid #0f0;
 		color: #0f0;
-		padding: 1rem;
-		font-family: inherit;
-		font-size: 1rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
+		border: 1px solid #0f0;
+		padding: 0.5rem;
 	}
-
-	.terminal-btn:hover {
-		background: #003300;
-		box-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
+	input {
+		flex: 1;
+		text-transform: uppercase;
 	}
-
-	.terminal-btn-small {
-		background: #001100;
-		border: 2px solid #0f0;
-		color: #0f0;
-		padding: 0.5rem 0.75rem;
-		font-family: inherit;
-		font-size: 1rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		white-space: nowrap;
+	label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
 	}
-
-	.terminal-btn-small:hover {
-		background: #003300;
-		box-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
+	label input {
+		text-transform: none;
 	}
-
-	.divider {
-		text-align: center;
-		color: #0a0;
-		margin: 1.5rem 0;
-	}
-
-	.game-code {
-		background: #001100;
-		border: 2px solid #0f0;
-		padding: 1rem;
-		text-align: center;
-		margin-top: 1.5rem;
-	}
-
-	.game-code p {
-		margin: 0.5rem 0;
-		color: #0f0;
-	}
-
-	.code {
-		font-size: 2rem;
-		font-weight: bold;
-		letter-spacing: 0.3rem;
-	}
-
-	.hint {
-		font-size: 0.8rem;
-		color: #0a0;
-	}
-
-	.observer-btn {
-		background: #001a1a;
-		border-color: #0aa;
-		color: #0aa;
-	}
-
-	.observer-btn:hover {
-		background: #002a2a;
-		box-shadow: 0 0 15px rgba(0, 170, 170, 0.8);
-	}
-
-	.observer-hint {
-		text-align: center;
-		font-size: 0.85rem;
-		color: #088;
-		margin: 0.5rem 0 0 0;
+	button:disabled {
+		opacity: 0.4;
 	}
 </style>

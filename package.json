@@ -9,10 +9,12 @@
 		"build:server": "tsc -p server/tsconfig.json",
 		"preview": "vite preview",
 		"start": "node dist/server/server.js",
-		"start:old": "node server.js",
 		"prepare": "svelte-kit sync || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p server/tsconfig.json --noEmit",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"sim": "npm run build:server && node dist/server/sim/cli.js"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.0",
@@ -23,12 +25,14 @@
 		"svelte": "^5.41.0",
 		"svelte-check": "^4.3.3",
 		"typescript": "^5.9.3",
-		"vite": "^7.1.10"
+		"vite": "^7.1.10",
+		"vitest": "^3.2.4"
 	},
 	"dependencies": {
 		"@sveltejs/adapter-node": "^5.4.0",
 		"express": "^5.1.0",
 		"socket.io": "^4.8.1",
-		"socket.io-client": "^4.8.1"
+		"socket.io-client": "^4.8.1",
+		"zod": "^4.1.0"
 	}
 }

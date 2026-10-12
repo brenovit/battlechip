@@ -1,65 +1,79 @@
 <script lang="ts">
-	import { gameStore } from '$lib/stores/game';
+	import { visibleState, room, mySlot, requestRematch, leaveGame } from '$lib/stores/game';
 
-	export let score: number;
-	export let damageCaused: number;
-	export let damageTaken: number;
-	export let playerIndex: number | null;
-	export let winner: number | null;
-	export let onRestart: () => void;
+	const slot = $derived($mySlot ?? 0);
+	const oppSlot = $derived(slot === 0 ? 1 : 0);
 
-	$: didWin = playerIndex !== null && winner !== null && playerIndex === winner;
-	$: title = didWin ? '[ACCESS GRANTED]' : '[NETWORK COMPROMISED]';
-	$: subtitle = didWin 
-		? '[ENEMY NETWORK INFILTRATED - MISSION SUCCESS]' 
-		: '[SYSTEM BREACHED - ACCESS DENIED]';
+	const myBoard = $derived($visibleState?.boards[slot]);
+	const oppBoard = $derived($visibleState?.boards[oppSlot]);
+	const myStats = $derived(myBoard?.stats);
+	const oppStats = $derived(oppBoard?.stats);
 
-	$: opponentWantsRematch = $gameStore.opponentWantsRematch;
-	$: requestedRematch = $gameStore.requestedRematch;
-	$: opponentDisconnected = $gameStore.opponentDisconnected;
+	const didWin = $derived($visibleState?.winner !== null && $visibleState?.winner === slot);
+	const endReason = $derived($visibleState?.endReason ?? 'elimination');
 
-	function handleRematch() {
-		gameStore.requestRematch();
-	}
+	const title = $derived(didWin ? '[ACCESS GRANTED]' : '[NETWORK COMPROMISED]');
+	const subtitle = $derived(
+		didWin
+			? `[MISSION SUCCESS - ENEMY HARDWARE NEUTRALIZED (${endReason.toUpperCase()})]`
+			: `[SYSTEM BREACHED - HARDWARE ANNIHILATED (${endReason.toUpperCase()})]`
+	);
+
+	const myRematch = $derived($room?.rematchRequests.includes(slot) ?? false);
+	const oppRematch = $derived($room?.rematchRequests.includes(oppSlot) ?? false);
+	const oppConnected = $derived($room?.players[oppSlot]?.connected ?? false);
 </script>
 
 <div class="game-over">
 	<h2 class="game-over-title" class:winner={didWin} class:loser={!didWin}>{title}</h2>
 	<p class="game-over-subtitle">{subtitle}</p>
-	<div class="stats">
-		<p class="stat-line"><span class="stat-label">[DAMAGE CAUSED]:</span> {damageCaused} hits</p>
-		<p class="stat-line"><span class="stat-label">[DAMAGE TAKEN]:</span> {damageTaken} hits</p>
-		<p class="stat-line"><span class="stat-label">[FINAL SCORE]:</span> {score} points</p>
+
+	<div class="stats-grid">
+		<div class="stat-box">
+			<h3>[YOUR TELEMETRY]</h3>
+			<p class="stat-line"><span class="stat-label">Final Score:</span> {myBoard?.score ?? 0}</p>
+			<p class="stat-line"><span class="stat-label">Shots Fired:</span> {myStats?.shots ?? 0}</p>
+			<p class="stat-line"><span class="stat-label">Hits Registered:</span> {myStats?.hits ?? 0}</p>
+			<p class="stat-line"><span class="stat-label">Misses:</span> {myStats?.misses ?? 0}</p>
+			<p class="stat-line">
+				<span class="stat-label">Accuracy:</span>
+				{myStats?.shots ? Math.round((myStats.hits / myStats.shots) * 100) : 0}%
+			</p>
+			<p class="stat-line"><span class="stat-label">Units Lost:</span> {myStats?.itemsLost ?? 0}/6</p>
+		</div>
+
+		<div class="stat-box">
+			<h3>[OPPONENT TELEMETRY]</h3>
+			<p class="stat-line"><span class="stat-label">Final Score:</span> {oppBoard?.score ?? 0}</p>
+			<p class="stat-line"><span class="stat-label">Shots Fired:</span> {oppStats?.shots ?? 0}</p>
+			<p class="stat-line"><span class="stat-label">Hits Registered:</span> {oppStats?.hits ?? 0}</p>
+			<p class="stat-line"><span class="stat-label">Misses:</span> {oppStats?.misses ?? 0}</p>
+			<p class="stat-line">
+				<span class="stat-label">Accuracy:</span>
+				{oppStats?.shots ? Math.round((oppStats.hits / oppStats.shots) * 100) : 0}%
+			</p>
+			<p class="stat-line"><span class="stat-label">Units Lost:</span> {oppStats?.itemsLost ?? 0}/6</p>
+		</div>
 	</div>
 
-	{#if opponentDisconnected}
-		<p class="rematch-status disconnect">[OPPONENT DISCONNECTED]</p>
-		<button class="terminal-btn" on:click={onRestart}>
-			[DISCONNECT]
-		</button>
-	{:else if requestedRematch && opponentWantsRematch}
-		<p class="rematch-status waiting">[REMATCH STARTING...]</p>
-	{:else if requestedRematch}
-		<p class="rematch-status waiting">[WAITING FOR OPPONENT...]</p>
-		<button class="terminal-btn secondary" on:click={onRestart}>
-			[CANCEL]
-		</button>
-	{:else if opponentWantsRematch}
-		<p class="rematch-status request">[OPPONENT WANTS REMATCH]</p>
-		<button class="terminal-btn" on:click={handleRematch}>
-			[ACCEPT REMATCH]
-		</button>
-		<button class="terminal-btn secondary" on:click={onRestart}>
-			[DECLINE]
-		</button>
-	{:else}
-		<button class="terminal-btn" on:click={handleRematch}>
-			[REQUEST REMATCH]
-		</button>
-		<button class="terminal-btn secondary" on:click={onRestart}>
-			[DISCONNECT]
-		</button>
-	{/if}
+	<div class="rematch-controls">
+		{#if !oppConnected}
+			<p class="rematch-status disconnect">[OPPONENT DISCONNECTED]</p>
+			<button class="terminal-btn secondary" onclick={leaveGame}>[RETURN TO LOBBY]</button>
+		{:else if myRematch && oppRematch}
+			<p class="rematch-status waiting">[REMATCH STARTING...]</p>
+		{:else if myRematch}
+			<p class="rematch-status waiting">[WAITING FOR OPPONENT TO ACCEPT...]</p>
+			<button class="terminal-btn secondary" onclick={leaveGame}>[DISCONNECT]</button>
+		{:else if oppRematch}
+			<p class="rematch-status request">[OPPONENT HAS REQUESTED A REMATCH]</p>
+			<button class="terminal-btn" onclick={requestRematch}>[ACCEPT REMATCH]</button>
+			<button class="terminal-btn secondary" onclick={leaveGame}>[DECLINE]</button>
+		{:else}
+			<button class="terminal-btn" onclick={requestRematch}>[REQUEST REMATCH]</button>
+			<button class="terminal-btn secondary" onclick={leaveGame}>[DISCONNECT]</button>
+		{/if}
+	</div>
 </div>
 
 <style>
@@ -70,10 +84,11 @@
 		justify-content: center;
 		min-height: 60vh;
 		text-align: center;
+		padding: 1rem;
 	}
 
 	.game-over-title {
-		font-size: 2rem;
+		font-size: 2.2rem;
 		margin-bottom: 0.5rem;
 		animation: flicker 2s infinite;
 	}
@@ -90,7 +105,7 @@
 
 	@media (min-width: 768px) {
 		.game-over-title {
-			font-size: 2.5rem;
+			font-size: 3rem;
 		}
 	}
 
@@ -102,45 +117,62 @@
 	.game-over-subtitle {
 		font-size: 1rem;
 		color: #0a0;
-		margin-bottom: 1.5rem;
+		margin-bottom: 2rem;
+	}
+
+	.stats-grid {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		margin-bottom: 2rem;
+		width: 100%;
+		max-width: 800px;
 	}
 
 	@media (min-width: 768px) {
-		.game-over-subtitle {
-			font-size: 1.2rem;
+		.stats-grid {
+			flex-direction: row;
 		}
 	}
 
-	.stats {
+	.stat-box {
+		flex: 1;
 		border: 1px solid #0f0;
-		padding: 1rem;
-		margin-bottom: 1.5rem;
-		background: rgba(0, 17, 0, 0.5);
+		padding: 1.2rem;
+		background: rgba(0, 20, 0, 0.6);
+		text-align: left;
+	}
+
+	.stat-box h3 {
+		margin-top: 0;
+		color: #0f0;
+		border-bottom: 1px solid #0a0;
+		padding-bottom: 0.5rem;
+		font-size: 1.1rem;
 	}
 
 	.stat-line {
-		font-size: 1.1rem;
+		font-size: 1rem;
 		color: #0f0;
-		margin: 0.5rem 0;
-		text-align: left;
+		margin: 0.4rem 0;
 	}
 
 	.stat-label {
 		color: #0ff;
-		font-weight: bold;
 	}
 
-	@media (min-width: 768px) {
-		.stat-line {
-			font-size: 1.3rem;
-		}
+	.rematch-controls {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
 	}
 
 	.rematch-status {
-		font-size: 1.2rem;
-		margin-bottom: 1.5rem;
-		padding: 1rem;
+		font-size: 1.1rem;
+		padding: 0.8rem 1.5rem;
 		border: 1px solid;
+		margin: 0;
 	}
 
 	.rematch-status.waiting {
@@ -168,12 +200,11 @@
 		background: #001100;
 		border: 2px solid #0f0;
 		color: #0f0;
-		padding: 1rem 2rem;
+		padding: 0.8rem 1.8rem;
 		font-family: inherit;
-		font-size: 1.2rem;
+		font-size: 1.1rem;
 		cursor: pointer;
 		transition: all 0.2s ease;
-		margin: 0.5rem;
 	}
 
 	.terminal-btn:hover {
@@ -182,14 +213,14 @@
 	}
 
 	.terminal-btn.secondary {
-		border-color: #666;
-		color: #666;
+		border-color: #555;
+		color: #777;
 	}
 
 	.terminal-btn.secondary:hover {
 		background: #222;
 		border-color: #888;
-		color: #888;
+		color: #aaa;
 		box-shadow: 0 0 10px rgba(136, 136, 136, 0.5);
 	}
 </style>
