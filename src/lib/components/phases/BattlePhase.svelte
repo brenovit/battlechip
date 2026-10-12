@@ -52,9 +52,9 @@
 			return;
 		}
 
-		// Check if cell was already fired upon
+		// Check if cell was already fired upon (allow shielded cells as they require an additional hit)
 		const targetCell = oppGridCells[c.row]?.[c.col];
-		if (targetCell && targetCell.state !== 'unknown') {
+		if (targetCell && targetCell.state !== 'unknown' && targetCell.state !== 'shielded') {
 			messageStore.show('[WARNING] - Coordinates already probed.', 'warning');
 			return;
 		}
@@ -189,6 +189,12 @@
 							<span class="emote">> {ev.slot === slot ? 'YOU' : opp?.name ?? 'OPPONENT'}: "{EMOTE_TEXT[ev.emote]}"</span>
 						{:else if ev.type === 'turn_timeout'}
 							<span class="timeout">> WARNING: Turn cycle expired! Auto-packet launched.</span>
+						{:else if ev.type === 'deflect'}
+							<span class="shielded">> ROUTER DEFLECTION: Packet redirected to [{ev.to.row},{ev.to.col}]!</span>
+						{:else if ev.type === 'shot_wasted'}
+							<span class="miss">> Packet wasted at [{ev.target.row},{ev.target.col}] (already probed).</span>
+						{:else if ev.type === 'repair'}
+							<span class="shielded">> BACKUP AUTO-REPAIR: Restored damaged node at [{ev.cell.row},{ev.cell.col}]!</span>
 						{:else}
 							> {ev.type.replace(/_/g, ' ').toUpperCase()}
 						{/if}

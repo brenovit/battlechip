@@ -37,20 +37,20 @@
 					onclick={() => onCellClick?.({ row: r, col: c })}
 					onpointerenter={() => onCellHover?.({ row: r, col: c })}
 					onpointerleave={() => onCellHover?.(null)}
-					title={item && (showItems || cell.state === 'destroyed') ? item.name : ''}
+					title={item && (showItems || cell.state === 'destroyed') ? item.name : cell.state === 'shielded' ? 'Shielded: Firewall protection (requires 1 more hit)' : ''}
 				>
 					{#if cell.state === 'destroyed' && item}
-						<span>{item.glyph}</span>
+						<span class="icon-destroyed">{item.glyph}</span>
 					{:else if cell.state === 'hit'}
-						<span>⚡</span>
+						<span class="icon-hit">⚡</span>
 					{:else if cell.state === 'shielded'}
-						<span>🛡</span>
+						<span class="icon-shielded">◈</span>
 					{:else if cell.state === 'miss'}
-						<span>·</span>
+						<span class="icon-miss">·</span>
 					{:else if showItems && item}
 						<span>{item.glyph}</span>
 					{:else if cell.revealed}
-						<span>?</span>
+						<span class="icon-revealed">?</span>
 					{/if}
 				</button>
 			{/each}
@@ -116,15 +116,30 @@
 		border-color: #f00;
 	}
 	.cell-shielded {
-		background: #002233;
-		border-color: #0af;
+		background: #001a2c;
+		border-color: #00b4d8;
+		box-shadow: inset 0 0 6px rgba(0, 180, 216, 0.4);
+	}
+	.icon-shielded {
+		color: #00e5ff;
+		font-size: 1.1rem;
+		text-shadow: 0 0 4px #00e5ff;
 	}
 	.cell-destroyed {
-		background: #222;
+		background: #1a1a1a;
 		border-color: var(--accent, #666);
+		box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.8);
+	}
+	.icon-destroyed {
+		filter: drop-shadow(0 0 4px var(--accent, #666));
 	}
 	.revealed {
-		outline: 1px dashed #ff0;
+		outline: 2px dashed #ffd166;
+		outline-offset: -2px;
+	}
+	.icon-revealed {
+		color: #ffd166;
+		font-weight: bold;
 	}
 	.hl-valid {
 		background: rgba(0, 255, 0, 0.35);

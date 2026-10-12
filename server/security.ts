@@ -5,7 +5,7 @@ import type { Placement } from '../shared/types.js';
 /** Server RNG backed by node:crypto. Use for everything authoritative (deploy, deflect, bots...). */
 export function cryptoRng(): Rng {
 	return {
-		next: () => randomInt(0, 2 ** 48) / 2 ** 48,
+		next: () => randomInt(0, 0x100000000) / 0x100000000,
 		int: (max: number) => randomInt(0, Math.max(1, max))
 	};
 }

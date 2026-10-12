@@ -220,15 +220,39 @@ describe('powerup abilities and passives', () => {
 		expect(shots).toHaveLength(3);
 	});
 
-	it('firewall adjacent cells require 2 hits (shielded on first hit)', () => {
-		const s = battleState();
-		// In LAYOUT: Server is at row 2, col 0..3. Firewall is at row 3, col 0..2.
-		// Cell (2, 0) is Server, which is adjacent to Firewall cell (3, 0).
-		const r = applyAction(s, { type: 'fire', slot: s.turn, target: { row: 2, col: 0 } }, seededRng(10));
-		expect(r.ok).toBe(true);
-		// With Firewall alive, adjacent cell requires 2 hits: should be shielded or deflected
-		const hasShield = r.events.some((e) => e.type === 'shielded');
-		const hasDeflect = r.events.some((e) => e.type === 'deflect');
-		expect(hasShield || hasDeflect).toBe(true);
+	it('firewall adjacent cells require 2 hits (shielded on first hit, hit on second hit)', () => {
+		// Use a layout without router to eliminate deflect randomness
+		const noRouterLayout: Placement[] = [
+			{ item: 'database', row: 0, col: 0, orientation: 'horizontal' },
+			{ item: 'server', row: 1, col: 0, orientation: 'horizontal' },
+			{ item: 'backup', row: 2, col: 0, orientation: 'horizontal' },
+			{ item: 'firewall', row: 3, col: 0, orientation: 'horizontal' },
+			{ item: 'iot-cluster', row: 4, col: 0, orientation: 'horizontal' },
+			{ item: 'router', row: 9, col: 8, orientation: 'horizontal' }
+		];
+		const rng = seededRng(1);
+		let s = createInitialState();
+		for (const slot of [0, 1] as Slot[]) {
+			s = applyAction(s, { type: 'ready', slot, placements: noRouterLayout }, rng).state;
+		}
+
+		const attacker = s.turn;
+		const defender = attacker === 0 ? 1 : 0;
+		// Cell (2, 0) is Server, adjacent to Firewall (3, 0)
+		const r1 = applyAction(s, { type: 'fire', slot: attacker, target: { row: 2, col: 0 } }, rng);
+		expect(r1.ok).toBe(true);
+		expect(r1.events.some((e) => e.type === 'shielded')).toBe(true);
+		expect(r1.state.players[defender].cells[2][0].state).toBe('shielded');
+
+		// Advance turn back to attacker
+		const rOppTurn = applyAction(r1.state, { type: 'fire', slot: defender, target: { row: 9, col: 0 } }, rng);
+		expect(rOppTurn.ok).toBe(true);
+		expect(rOppTurn.state.turn).toBe(attacker);
+
+		// Second shot on the shielded cell
+		const r2 = applyAction(rOppTurn.state, { type: 'fire', slot: attacker, target: { row: 2, col: 0 } }, rng);
+		expect(r2.ok).toBe(true);
+		expect(r2.events.some((e) => e.type === 'hit')).toBe(true);
+		expect(r2.state.players[defender].cells[2][0].state).toBe('hit');
 	});
 });

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GameRoom, type ObserverSink } from '../server/room';
 import { BotPlayer, type Player } from '../server/players';
 import { parseClientMessage } from '../server/schemas';
-import { commitBoard, generateGameCode, generateToken, sanitizeName, WindowLimiter } from '../server/security';
+import { commitBoard, cryptoRng, generateGameCode, generateToken, sanitizeName, WindowLimiter } from '../server/security';
 import { RoomManager } from '../server/manager';
 import { seededRng } from '../shared/rng';
 import { randomLayout } from '../shared/placement';
@@ -38,6 +38,17 @@ function setup() {
 afterEach(() => vi.useRealTimers());
 
 describe('security utils', () => {
+	it('cryptoRng produces floats in [0, 1) and ints in [0, max)', () => {
+		const rng = cryptoRng();
+		for (let i = 0; i < 100; i++) {
+			const n = rng.next();
+			expect(n).toBeGreaterThanOrEqual(0);
+			expect(n).toBeLessThan(1);
+			const int = rng.int(10);
+			expect(int).toBeGreaterThanOrEqual(0);
+			expect(int).toBeLessThan(10);
+		}
+	});
 	it('game codes are 6+ chars from a safe alphabet; tokens are long and unique', () => {
 		const codes = new Set(Array.from({ length: 200 }, () => generateGameCode()));
 		for (const c of codes) expect(c).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
