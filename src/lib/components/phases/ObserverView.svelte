@@ -1,72 +1,74 @@
 <script lang="ts">
-	import { gameStore } from '$lib/stores/game';
+	import { visibleState, room } from '$lib/stores/game';
 	import Grid from '$lib/components/Grid.svelte';
-	import type { Grid as GridType } from '$lib/types/game';
-	import { createEmptyGrid } from '$lib/utils/grid';
+	import { publicCells, emptyCells } from '$lib/utils/boards';
+	import type { GridCell } from '$lib/types/game';
 
-	$: player1State = $gameStore.player1State;
-	$: player2State = $gameStore.player2State;
-	$: phase = $gameStore.phase;
-	$: currentTurn = $gameStore.currentTurn;
+	const phase = $derived($room?.phase ?? 'lobby');
+	const p1 = $derived($room?.players[0]);
+	const p2 = $derived($room?.players[1]);
 
-	let player1Grid: GridType = createEmptyGrid();
-	let player2Grid: GridType = createEmptyGrid();
+	const currentTurn = $derived($visibleState?.turn ?? 0);
+	const obsCount = $derived($room?.observerCount ?? 1);
 
-	$: if (player1State?.grid) {
-		player1Grid = player1State.grid;
-	}
+	const p1Cells = $derived.by<GridCell[][]>(() => {
+		if ($visibleState?.boards[0]) return publicCells($visibleState.boards[0]);
+		return emptyCells();
+	});
 
-	$: if (player2State?.grid) {
-		player2Grid = player2State.grid;
-	}
-
-	$: player1Name = player1State?.name || 'Player 1';
-	$: player2Name = player2State?.name || 'Player 2';
-	$: player1Score = player1State?.score || 0;
-	$: player2Score = player2State?.score || 0;
+	const p2Cells = $derived.by<GridCell[][]>(() => {
+		if ($visibleState?.boards[1]) return publicCells($visibleState.boards[1]);
+		return emptyCells();
+	});
 </script>
 
 <div class="observer-view">
 	<div class="observer-header">
-		<h2 class="observer-title">[OBSERVER MODE]</h2>
-		<p class="observer-subtitle">Spectating the battle - no interference allowed</p>
+		<h2 class="observer-title">[OBSERVER SATELLITE FEED]</h2>
+		<p class="observer-subtitle">Passive surveillance mode active. Observers connected: {obsCount}</p>
 	</div>
 
 	{#if phase === 'lobby' || phase === 'placement'}
-		<div class="waiting-message">
-			<p>[WAITING FOR BATTLE TO START...]</p>
-			{#if player1State && !player2State}
-				<p class="sub-message">Waiting for second player to join...</p>
-			{:else if player1State && player2State}
-				<p class="sub-message">Players are setting up their networks...</p>
+		<div class="waiting-card">
+			<p class="pulse-text">[AWAITING BATTLE INITIALIZATION]</p>
+			{#if !p1 || !p2}
+				<p class="sub-text">Waiting for combatants to connect...</p>
+			{:else}
+				<p class="sub-text">Combatants are currently deploying hardware assets...</p>
 			{/if}
 		</div>
-	{:else if phase === 'battle' || phase === 'game-over'}
-		<div class="battle-status">
-			<div class="turn-indicator" class:player1-turn={currentTurn === 0} class:player2-turn={currentTurn === 1}>
+	{:else}
+		<div class="battle-status-bar">
+			<div
+				class="turn-banner"
+				class:p1-active={phase === 'battle' && currentTurn === 0}
+				class:p2-active={phase === 'battle' && currentTurn === 1}
+			>
 				{#if phase === 'battle'}
-					{currentTurn === 0 ? `[${player1Name}'S TURN]` : `[${player2Name}'S TURN]`}
+					{currentTurn === 0 ? `[TURN: ${p1?.name ?? 'PLAYER 1'}]` : `[TURN: ${p2?.name ?? 'PLAYER 2'}]`}
 				{:else}
-					[GAME OVER]
+					[BATTLE CONCLUDED]
 				{/if}
 			</div>
 		</div>
 
-		<div class="grids-container">
-			<div class="grid-wrapper">
-				<div class="player-header">
-					<h3>[{player1Name}]</h3>
-					<p class="score">Score: {player1Score}</p>
+		<div class="grids-arena">
+			<div class="grid-section">
+				<div class="player-tag">
+					<h3>[{p1?.name ?? 'NODE 0'}]</h3>
+					<span class="score-tag">Score: {$visibleState?.boards[0]?.score ?? 0}</span>
+					<span class="units-tag">Remaining: {$visibleState?.boards[0]?.itemsRemaining ?? 0}/6</span>
 				</div>
-				<Grid isOwnGrid={true} cells={player1Grid.cells} />
+				<Grid cells={p1Cells} disabled label="Node 0 defense" />
 			</div>
 
-			<div class="grid-wrapper">
-				<div class="player-header">
-					<h3>[{player2Name}]</h3>
-					<p class="score">Score: {player2Score}</p>
+			<div class="grid-section">
+				<div class="player-tag">
+					<h3>[{p2?.name ?? 'NODE 1'}]</h3>
+					<span class="score-tag">Score: {$visibleState?.boards[1]?.score ?? 0}</span>
+					<span class="units-tag">Remaining: {$visibleState?.boards[1]?.itemsRemaining ?? 0}/6</span>
 				</div>
-				<Grid isOwnGrid={true} cells={player2Grid.cells} />
+				<Grid cells={p2Cells} disabled label="Node 1 defense" />
 			</div>
 		</div>
 	{/if}
@@ -78,39 +80,27 @@
 		flex-direction: column;
 		align-items: center;
 		padding: 0.5rem;
-		max-width: 1600px;
+		max-width: 1400px;
 		margin: 0 auto;
 		width: 100%;
 		box-sizing: border-box;
 	}
 
-	@media (min-width: 768px) {
-		.observer-view {
-			padding: 1rem;
-		}
-	}
-
 	.observer-header {
 		text-align: center;
 		margin-bottom: 1.5rem;
-		padding: 1rem;
+		padding: 0.8rem;
 		background: #001100;
-		border: 2px solid #0f0;
+		border: 1px solid #0f0;
 		width: 100%;
 		box-sizing: border-box;
 	}
 
 	.observer-title {
 		color: #0f0;
-		margin: 0 0 0.5rem 0;
-		font-size: 1.5rem;
+		margin: 0 0 0.3rem 0;
+		font-size: 1.6rem;
 		text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
-	}
-
-	@media (min-width: 768px) {
-		.observer-title {
-			font-size: 2rem;
-		}
 	}
 
 	.observer-subtitle {
@@ -119,33 +109,37 @@
 		font-size: 0.9rem;
 	}
 
-	.waiting-message {
+	.waiting-card {
 		text-align: center;
-		padding: 2rem;
-		border: 2px solid #0a0;
+		padding: 2.5rem;
+		border: 1px solid #0a0;
 		background: #001100;
 		margin: 2rem 0;
-	}
-
-	.waiting-message p {
-		color: #0f0;
-		font-size: 1.2rem;
-		margin: 0.5rem 0;
-	}
-
-	.sub-message {
-		color: #0a0 !important;
-		font-size: 1rem !important;
-	}
-
-	.battle-status {
 		width: 100%;
-		margin-bottom: 1rem;
+		max-width: 600px;
 	}
 
-	.turn-indicator {
+	.pulse-text {
+		color: #0f0;
+		font-size: 1.3rem;
+		margin: 0 0 0.5rem 0;
+		animation: pulse 1.5s infinite;
+	}
+
+	.sub-text {
+		color: #0a0;
+		font-size: 0.95rem;
+		margin: 0;
+	}
+
+	.battle-status-bar {
+		width: 100%;
+		margin-bottom: 1.5rem;
+	}
+
+	.turn-banner {
 		text-align: center;
-		padding: 1rem;
+		padding: 0.8rem;
 		border: 2px solid #0a0;
 		color: #0a0;
 		font-size: 1.3rem;
@@ -153,83 +147,72 @@
 		background: #001100;
 	}
 
-	@media (min-width: 768px) {
-		.turn-indicator {
-			font-size: 1.5rem;
-		}
-	}
-
-	.turn-indicator.player1-turn {
+	.turn-banner.p1-active {
 		border-color: #0f0;
 		color: #0f0;
-		box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
-		animation: glow 1.5s ease-in-out infinite;
+		box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
 	}
 
-	.turn-indicator.player2-turn {
+	.turn-banner.p2-active {
 		border-color: #0ff;
 		color: #0ff;
-		box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
-		animation: glow-cyan 1.5s ease-in-out infinite;
+		box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
 	}
 
-	@keyframes glow {
-		0%, 100% {
-			box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-		}
-		50% {
-			box-shadow: 0 0 25px rgba(0, 255, 0, 0.8);
-		}
-	}
-
-	@keyframes glow-cyan {
-		0%, 100% {
-			box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-		}
-		50% {
-			box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
-		}
-	}
-
-	.grids-container {
+	.grids-arena {
 		display: flex;
 		flex-direction: column;
 		gap: 2rem;
 		justify-content: center;
-		margin-bottom: 2rem;
+		align-items: center;
 		width: 100%;
 	}
 
 	@media (min-width: 1024px) {
-		.grids-container {
+		.grids-arena {
 			flex-direction: row;
+			align-items: flex-start;
 		}
 	}
 
-	.grid-wrapper {
-		flex: 1;
-		max-width: 600px;
+	.grid-section {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.player-tag {
+		text-align: center;
+		margin-bottom: 0.8rem;
+		padding: 0.5rem 1rem;
+		background: #001100;
+		border: 1px solid #0f0;
 		width: 100%;
 		box-sizing: border-box;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem;
 	}
 
-	.player-header {
-		text-align: center;
-		margin-bottom: 1rem;
-		padding: 0.75rem;
-		background: #001100;
-		border: 2px solid #0f0;
-	}
-
-	.player-header h3 {
-		color: #0f0;
-		margin: 0 0 0.5rem 0;
-		font-size: 1.3rem;
-	}
-
-	.score {
-		color: #0a0;
+	.player-tag h3 {
 		margin: 0;
-		font-size: 1rem;
+		font-size: 1.1rem;
+		color: #0f0;
+	}
+
+	.score-tag {
+		color: #0ff;
+		font-size: 0.9rem;
+	}
+
+	.units-tag {
+		color: #ff0;
+		font-size: 0.9rem;
+	}
+
+	@keyframes pulse {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.5; }
 	}
 </style>

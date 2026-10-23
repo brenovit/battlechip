@@ -1,228 +1,95 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { gameStore } from '$lib/stores/game';
-	import { messageStore } from '$lib/stores/message';
+	import Grid from '$lib/components/Grid.svelte';
 	import ResourcePlacement from '$lib/components/ResourcePlacement.svelte';
-	import type { Grid } from '$lib/types/game';
+	import { randomLayout, ready, requestRandomDeploy, room, visibleState, mySlot } from '$lib/stores/game';
+	import { canPlace, validatePlacements } from '$shared/placement';
+	import { placementGrid, ownCells } from '$lib/utils/boards';
+	import type { Coord, GridCell, ItemId, Orientation, Placement } from '$lib/types/game';
+	import { ITEM_IDS } from '$lib/types/game';
 
-	export let myGrid: Grid;
+	let placements = $state<Placement[]>([]);
+	let selected = $state<ItemId | null>('database');
+	let orientation = $state<Orientation>('horizontal');
+	let hover = $state<Coord | null>(null);
 
-	let isPlayerReady = false;
-	let isOpponentReady = false;
+	const locked = $derived(!!$visibleState?.own?.placements);
+	const opponent = $derived($mySlot === null ? null : $room?.players[$mySlot === 0 ? 1 : 0]);
 
-	$: opponentName = $gameStore.opponentName;
-
-	onMount(() => {
-		const socket = gameStore.getSocket();
-		if (socket) {
-			socket.on('opponent-ready', () => {
-				isOpponentReady = true;
-				messageStore.show('[OPPONENT READY] - [WAITING FOR BATTLE TO START...]', 'info');
-			});
-		}
+	// Adopt server random-deploy proposals (re-rollable until Ready).
+	$effect(() => {
+		if ($randomLayout) placements = $randomLayout.map((p) => ({ ...p }));
 	});
 
-	function handleResourcesPlaced() {
-		const socket = gameStore.getSocket();
-		if (socket && $gameStore.gameId && $gameStore.playerId) {
-			const resourcePlacements = myGrid.resources.map(resource => {
-				const firstCoord = resource.coordinates[0];
-				const isHorizontal = resource.coordinates.length > 1 && 
-					resource.coordinates[0].row === resource.coordinates[1].row;
-				
-				return {
-					type: resource.type,
-					start: firstCoord,
-					orientation: isHorizontal ? 'horizontal' : 'vertical'
-				};
-			});
-
-			console.log('[PLACEMENT] Emitting place-resources event', {
-				gameId: $gameStore.gameId,
-				playerId: $gameStore.playerId,
-				resourceCount: resourcePlacements.length
-			});
-			socket.emit('place-resources', $gameStore.gameId, $gameStore.playerId, resourcePlacements);
-			myGrid = myGrid;
-		}
-	}
-
-	function confirmReady() {
-		const socket = gameStore.getSocket();
-		console.log('[PLACEMENT] confirmReady() called');
-		console.log('[PLACEMENT] isPlayerReady:', isPlayerReady, 'isOpponentReady:', isOpponentReady);
-		
-		if (socket && $gameStore.gameId && $gameStore.playerId) {
-			// First, send the resource placements to the server
-			handleResourcesPlaced();
-			
-			console.log('[PLACEMENT] Emitting player-ready event', {
-				gameId: $gameStore.gameId,
-				playerId: $gameStore.playerId
-			});
-			socket.emit('player-ready', $gameStore.gameId, $gameStore.playerId);
-			isPlayerReady = true;
-			if (isOpponentReady) {
-				messageStore.show('[BOTH PLAYERS READY] - [INITIATING BATTLE...]', 'success');
-				console.log('[PLACEMENT] Both players ready, expecting battle-started event');
-			} else {
-				messageStore.show('[YOU ARE READY] - [WAITING FOR OPPONENT...]', 'info');
-				console.log('[PLACEMENT] Waiting for opponent to ready');
+	const cells = $derived.by<GridCell[][]>(() => {
+		if (locked && $visibleState) return ownCells($visibleState);
+		const g = placementGrid(placements);
+		if (hover && selected) {
+			const p: Placement = { item: selected, row: hover.row, col: hover.col, orientation };
+			const ok = canPlace(p, placements);
+			const size = { database: 5, backup: 4, server: 4, firewall: 3, 'iot-cluster': 3, router: 2 }[selected];
+			for (let i = 0; i < size; i++) {
+				const r = orientation === 'horizontal' ? hover.row : hover.row + i;
+				const c = orientation === 'horizontal' ? hover.col + i : hover.col;
+				if (g[r]?.[c]) g[r][c].highlight = ok ? 'valid' : 'invalid';
 			}
-		} else {
-			console.error('[PLACEMENT] Cannot emit player-ready - missing socket, gameId, or playerId', {
-				hasSocket: !!socket,
-				gameId: $gameStore.gameId,
-				playerId: $gameStore.playerId
-			});
 		}
+		return g;
+	});
+
+	function place(c: Coord) {
+		if (!selected || locked) return;
+		const p: Placement = { item: selected, row: c.row, col: c.col, orientation };
+		if (!canPlace(p, placements)) return;
+		placements = [...placements.filter((x) => x.item !== selected), p];
+		selected = ITEM_IDS.find((id) => !placements.some((x) => x.item === id)) ?? null;
 	}
+
+	const rotate = () => (orientation = orientation === 'horizontal' ? 'vertical' : 'horizontal');
+	const valid = $derived(validatePlacements(placements).ok);
 </script>
 
-<div class="placement-phase">
-	<div class="phase-header">
-		<h2>[DEPLOYMENT PHASE]</h2>
-		{#if opponentName}
-			<p class="opponent-info">[OPPONENT DETECTED: {opponentName}]</p>
-		{/if}
-		<div class="ready-status">
-			<div class="status-indicator" class:ready={isPlayerReady}>
-				[YOU: {isPlayerReady ? '✓ READY' : '⧗ DEPLOYING'}]
-			</div>
-			<div class="status-indicator" class:ready={isOpponentReady}>
-				[OPPONENT: {isOpponentReady ? '✓ READY' : '⧗ DEPLOYING'}]
-			</div>
-		</div>
+<svelte:window onkeydown={(e) => e.key.toLowerCase() === 'r' && rotate()} />
+
+<div class="placement">
+	<p>Deploy your hardware. Opponent: {opponent?.name ?? '...'} {opponent?.ready ? '(READY)' : ''}</p>
+	<div class="layout">
+		<ResourcePlacement {placements} {selected} {orientation} {locked} onSelect={(id) => (selected = id)} onRotate={rotate} />
+		<Grid {cells} showItems onCellClick={locked ? null : place} onCellHover={(c) => (hover = c)} label="Your network" />
 	</div>
-	<ResourcePlacement bind:grid={myGrid} />
-	{#if myGrid.resources.length === 6 && !isPlayerReady}
-		<div class="ready-confirmation">
-			<button class="confirm-ready-btn" on:click={confirmReady}>
-				[CONFIRM READY] - [START BATTLE]
-			</button>
-			<p class="ready-hint">Click to confirm you are ready to begin the battle</p>
-		</div>
-	{/if}
+	<div class="actions">
+		<button disabled={locked} onclick={requestRandomDeploy}>Random deploy</button>
+		<button disabled={locked} onclick={() => (placements = [])}>Reset</button>
+		<button disabled={locked || !valid} onclick={() => ready(placements)}>Ready</button>
+		{#if locked}<span>Board locked. Waiting for opponent...</span>{/if}
+	</div>
 </div>
 
 <style>
-	.placement-phase {
+	.placement {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 0.5rem;
-		max-width: 1400px;
-		margin: 0 auto;
-		width: 100%;
-		box-sizing: border-box;
+		gap: 1rem;
 	}
-
-	@media (min-width: 768px) {
-		.placement-phase {
-			padding: 1rem;
-		}
-	}
-
-	.phase-header {
-		text-align: center;
-		margin-bottom: 1rem;
-		width: 100%;
-	}
-
-	.phase-header h2 {
-		color: #0f0;
-		font-size: 1.5rem;
-		margin-bottom: 0.5rem;
-	}
-
-	@media (min-width: 768px) {
-		.phase-header h2 {
-			font-size: 1.8rem;
-			margin-bottom: 0.75rem;
-		}
-	}
-
-	.opponent-info {
-		color: #0a0;
-		font-size: 1rem;
-		margin-bottom: 0.5rem;
-	}
-
-	@media (min-width: 768px) {
-		.opponent-info {
-			font-size: 1.1rem;
-			margin-bottom: 0.75rem;
-		}
-	}
-
-	.ready-status {
+	.layout {
 		display: flex;
+		gap: 1rem;
+		flex-wrap: wrap;
 		justify-content: center;
-		gap: 2rem;
-		margin-top: 1rem;
 	}
-
-	.status-indicator {
-		padding: 0.5rem 1rem;
-		border: 2px solid #0a0;
-		color: #0a0;
-		background: #001100;
+	.actions {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
 	}
-
-	.status-indicator.ready {
-		border-color: #0f0;
-		color: #0f0;
-		box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-	}
-
-	.ready-confirmation {
-		text-align: center;
-		margin-top: 1rem;
-		padding: 1rem;
-		background: #001100;
-		border: 3px solid #0f0;
-		box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
-		width: 100%;
-		max-width: 600px;
-		box-sizing: border-box;
-	}
-
-	@media (min-width: 768px) {
-		.ready-confirmation {
-			margin-top: 1.5rem;
-			padding: 1.5rem;
-		}
-	}
-
-	.confirm-ready-btn {
-		background: #001100;
-		border: 2px solid #0f0;
-		color: #0f0;
-		padding: 1rem 2rem;
+	button {
 		font-family: inherit;
-		font-size: 1.2rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		animation: pulse 2s infinite;
+		background: #001100;
+		color: #0f0;
+		border: 1px solid #0f0;
+		padding: 0.5rem 1rem;
 	}
-
-	@keyframes pulse {
-		0%, 100% {
-			box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-		}
-		50% {
-			box-shadow: 0 0 25px rgba(0, 255, 0, 0.9);
-		}
-	}
-
-	.confirm-ready-btn:hover {
-		background: #003300;
-		box-shadow: 0 0 30px rgba(0, 255, 0, 1);
-	}
-
-	.ready-hint {
-		color: #0a0;
-		margin-top: 1rem;
-		font-size: 0.9rem;
+	button:disabled {
+		opacity: 0.4;
 	}
 </style>
